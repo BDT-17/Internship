@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.2.0] - 2026-05-19
+
+### Added
+- `Kaggle_Full_Training_Plant_Classification.ipynb` for full training on Kaggle.
+- `Smoke_Test_Kaggle.ipynb` for quick pipeline sanity-checks.
+- `Kaggle_Showcase_Inference.ipynb` for demo inference using trained weights.
+- `dataset_plant_classification.zip` containing the compressed dataset for Kaggle upload.
+
+### Changed
+- Updated `PROJECT_XRAY.md` and `README.md` to document the new Kaggle workflow components.
+
+---
+
 ## [1.1.0] - 2026-05-19
 
 ### Added

@@ -110,6 +110,10 @@ internship/
 ├── fix_notebook_path.py           # Helper to resolve hardcoded notebook paths
 ├── Phase_1_Literature_Review_Report.md # Theoretical foundation & review
 ├── Phase_2_Plant_Classification.ipynb  # Primary Jupyter notebook containing code & experiments
+├── Kaggle_Full_Training_Plant_Classification.ipynb # Kaggle full training notebook (50 epochs)
+├── Kaggle_Showcase_Inference.ipynb # Kaggle model prediction demo notebook
+├── Smoke_Test_Kaggle.ipynb        # Kaggle smoke-test validation notebook
+├── dataset_plant_classification.zip # Compressed dataset package for Kaggle upload
 ├── IMPLEMENTATION_SUMMARY.md      # Summary of the Phase 2 dataset architecture
 └── README.md                      # General user-facing overview
 ```
@@ -162,6 +166,11 @@ Custom CNN    ResNet50 Feature Extraction    ResNet50 Fine-Tuning
   * Implements stratified splits by ensuring class distributions remain consistent across train, validation, and test datasets.
   * Implements image augmentation (Resize 256x256, Random Flips, Rotations, Color Jitter, and ImageNet standardization).
   * Defines the three candidate architectures and executes training/evaluation metrics logs.
+
+### 4. Kaggle Training & Evaluation Notebooks
+* **`Kaggle_Full_Training_Plant_Classification.ipynb`**: Notebook configured specifically for Kaggle environments to execute the full training of all 3 models (Custom CNN, ResNet50 Feature Extraction, and ResNet50 Fine-tuning) over 50 epochs. Outputs the training logs, curves, confusion matrices, and saved model weights to `/kaggle/working/plant_training_outputs`.
+* **`Smoke_Test_Kaggle.ipynb`**: A quick verification notebook that trains a smaller `TinyCNN` model on a subset of 8 classes for 1 epoch. Used to sanity-check path references, CUDA acceleration, and metric generation on Kaggle before starting full training.
+* **`Kaggle_Showcase_Inference.ipynb`**: Demo notebook to perform inference on a custom image using the best trained weights saved from the Kaggle training run, visualizing the top-5 predicted classes with confidence percentages.
 
 ---
 

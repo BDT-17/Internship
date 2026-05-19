@@ -13,6 +13,10 @@ Important: the current notebook no longer uses the original 15 PlantVillage dise
 internship/
 |-- Phase_1_Literature_Review_Report.md
 |-- Phase_2_Plant_Classification.ipynb
+|-- Kaggle_Full_Training_Plant_Classification.ipynb
+|-- Kaggle_Showcase_Inference.ipynb
+|-- Smoke_Test_Kaggle.ipynb
+|-- dataset_plant_classification.zip
 |-- requirements.txt
 |-- dataset/
 |   |-- PlantVillage/
