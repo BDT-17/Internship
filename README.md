@@ -1,139 +1,186 @@
-# Phase 2: Plant Disease Classification - Implementation
+# Phase 2: Plant Species Classification - Implementation
 
-Dự án so sánh hiệu suất giữa CNN trained from scratch và pretrained models (ResNet50) cho bài toán phân loại bệnh cây trồng.
+This repository currently implements a Phase 2 experiment that compares a CNN trained from scratch against pretrained ResNet50 variants for plant species classification.
 
-## Cấu trúc dự án
+Important: the current notebook no longer uses the original 15 PlantVillage disease classes directly. It now uses a merged dataset with:
+- 3 crop-level classes from PlantVillage: `Pepper` (2,475 images), `Potato` (2,152 images), `Tomato` (16,011 images)
+- 73 tree-genus classes from Leafsnap (including `Abies`, `Acer`, `Betula`, `Magnolia`, `Pinus`, `Quercus`, `Ulmus`)
+- 76 total classes in `dataset_plant_classification` (pure image files only, metadata `.txt` files removed)
 
-```
+## Current project structure
+
+```text
 internship/
-├── Phase_1_Literature_Review_Report.md    # Báo cáo nghiên cứu lý thuyết
-├── Phase_2_Plant_Classification.ipynb     # Notebook thực nghiệm chính
-├── requirements.txt                        # Dependencies cần cài đặt
-├── dataset/
-│   ├── PlantVillage/                      # Dataset chính (15 classes)
-│   └── leafsnap-dataset/                  # Dataset test cross-domain
-└── guide/                                  # Tài liệu hướng dẫn
+|-- Phase_1_Literature_Review_Report.md
+|-- Phase_2_Plant_Classification.ipynb
+|-- requirements.txt
+|-- dataset/
+|   |-- PlantVillage/
+|   `-- leafsnap-dataset/
+|-- dataset_clean/
+|   `-- dataset/
+|-- dataset_plant_classification/
+|-- 01_extract_clean.py
+|-- 02_restructure_dataset.py
+|-- IMPLEMENTATION_SUMMARY.md
+`-- guide/
 ```
 
-## Cài đặt môi trường
+## Dataset status
 
-### 1. Kích hoạt virtual environment (nếu có)
+### 1. Original dataset folders
+
+`dataset/PlantVillage`
+- 15 classes
+- 20,639 images total
+- Class breakdown:
+  - Pepper: 2 disease folders
+  - Potato: 3 disease folders
+  - Tomato: 10 disease folders
+
+`dataset/leafsnap-dataset`
+- `images/lab`: 185 species, 23,147 images
+- `images/field`: 184 species, 7,719 images
+- This is a tree-species dataset, not a crop disease dataset
+
+### 2. Cleaned extraction folder
+
+`dataset_clean/dataset`
+- This is a cleaned extraction of the same raw dataset package structure
+- It still contains:
+  - `PlantVillage` with 15 classes
+  - `leafsnap-dataset` with Leafsnap content
+- It does not reduce the data by itself
+
+### 3. Training dataset used by the notebook
+
+`dataset_plant_classification`
+- 76 classes total
+- 51,504 images total (all metadata `.txt` files removed)
+- built from:
+  - PlantVillage grouped by crop name (Pepper: 2,475 images, Potato: 2,152 images, Tomato: 16,011 images)
+  - Leafsnap grouped by genus name (including Abies, Acer, Betula, Magnolia, Pinus, Quercus, Ulmus)
+- file types inside output:
+  - `.jpg`: 51,502
+  - `.jpeg`: 1
+  - `.png`: 1
+
+This dataset is produced by `02_restructure_dataset.py`.
+
+## How the merged labels work
+
+The merged label logic comes from `02_restructure_dataset.py`.
+
+### PlantVillage
+- disease labels are discarded
+- folders are grouped by crop name only
+
+Examples:
+- `Pepper__bell___Bacterial_spot` -> `Pepper`
+- `Pepper__bell___healthy` -> `Pepper`
+- all 3 potato disease folders -> `Potato`
+- all 10 tomato disease folders -> `Tomato`
+
+### Leafsnap
+- species labels are grouped by genus
+- both `field` and `lab` images are included
+
+Examples:
+- `acer_rubrum` -> `Acer`
+- `quercus_alba` -> `Quercus`
+- `pinus_strobus` -> `Pinus`
+
+This keeps the dataset broad without exploding into hundreds of species-specific folders.
+
+## Environment setup
+
+### 1. Activate virtual environment
+
 ```bash
-cd d:/DS/internship
-source venv/Scripts/activate  # hoặc venv\Scripts\activate trên Windows
+cd d:/DS/Internship
+venv\Scripts\activate
 ```
 
-### 2. Cài đặt dependencies
+### 2. Install dependencies
+
 ```bash
 pip install -r requirements.txt
 ```
 
-**Lưu ý**: Nếu bạn có GPU NVIDIA, cài đặt PyTorch với CUDA support:
-```bash
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
-```
+### 3. Verify PyTorch
 
-### 3. Kiểm tra cài đặt
 ```bash
 python -c "import torch; print(f'PyTorch: {torch.__version__}'); print(f'CUDA: {torch.cuda.is_available()}')"
 ```
 
-## Chạy thực nghiệm
+## Running the experiment
 
-### Mở Jupyter Notebook
 ```bash
 jupyter notebook Phase_2_Plant_Classification.ipynb
 ```
 
-### Cấu trúc notebook
+## Notebook contents
 
-**Sections 1-5**: Setup và chuẩn bị
-- Import libraries
-- Load PlantVillage dataset (70/15/15 split)
-- Data augmentation
-- Model architectures (Scratch CNN, ResNet50 FE, ResNet50 FT)
-- Training functions
+### Sections 1-5
+- imports and setup
+- dataset loading with stratified split
+- augmentation pipeline
+- model definitions
+- training and evaluation helpers
 
-**Sections 6-8**: Ba thực nghiệm chính
-- Experiment 1: Custom CNN from scratch
-- Experiment 2: ResNet50 Feature Extraction (frozen backbone)
-- Experiment 3: ResNet50 Fine-tuning (progressive unfreezing)
+### Sections 6-8
+- Experiment 1: custom CNN from scratch
+- Experiment 2: ResNet50 feature extraction
+- Experiment 3: ResNet50 fine-tuning
 
-**Sections 9-10**: Phân tích kết quả
-- Comparison table
-- Training curves visualization
-- Confusion matrices
-- Metrics comparison bar charts
-- Hypothesis validation
-- Conclusions
+### Sections 9-10
+- metrics comparison
+- training curves
+- confusion matrices
+- hypothesis review
+- conclusions
 
-### Thời gian chạy dự kiến
+## Expected outputs
 
-| Model | Training Time (CPU) | Training Time (GPU) |
-|-------|---------------------|---------------------|
-| Scratch CNN | 4-6 hours | 30-60 min |
-| ResNet50 FE | 1-2 hours | 15-30 min |
-| ResNet50 FT | 2-3 hours | 30-60 min |
+After running the notebook you should get:
+- `training_curves.png`
+- `confusion_matrices.png`
+- `metrics_comparison.png`
 
-## Dataset
+## Current research caveat
 
-### PlantVillage
-- **Classes**: 15 (Pepper: 2, Potato: 3, Tomato: 10)
-- **Total images**: ~10,000+
-- **Format**: 256×256 RGB JPG
-- **Condition**: Controlled lab environment
+If the internship goal is plant disease classification, the current merged dataset is still not a clean disease-classification benchmark, because:
+- PlantVillage labels were collapsed from disease level to crop level
+- Leafsnap labels are tree genera, not crop diseases
 
-### LeafSnap (Cross-domain testing)
-- **Species**: 185 tree species
-- **Field images**: ~7,700 real-world photos
-- **Purpose**: Test generalization to natural conditions
-
-## Kết quả mong đợi
-
-Dựa trên Phase 1 Literature Review:
-
-| Metric | Scratch CNN | ResNet50 FE | ResNet50 FT |
-|--------|-------------|-------------|-------------|
-| Accuracy | 87-90% | 94-96% | 96-98% |
-| F1-score | 0.86-0.89 | 0.93-0.95 | 0.95-0.97 |
-| Training time | 4-6h | 15-30m | 1-2h |
-| Generalization gap | 8-12% | 2-4% | 1-3% |
-
-## Outputs
-
-Sau khi chạy notebook, bạn sẽ có:
-- `training_curves.png` - Biểu đồ loss và accuracy qua các epochs
-- `confusion_matrices.png` - Ma trận nhầm lẫn cho 3 models
-- `metrics_comparison.png` - So sánh metrics và training time
-- Console output với detailed analysis và hypothesis validation
+For a stronger internship project, a better target is one of these:
+1. keep the current 15 PlantVillage classes and study disease classification properly
+2. use the current 76-class merged dataset as a broader plant classification experiment
+3. keep both setups and compare disease-level vs genus/crop-level classification
 
 ## Troubleshooting
 
-### Lỗi CUDA out of memory
-Giảm batch size trong cell 6:
+### CUDA out of memory
+
+Reduce the batch size in the notebook, for example:
+
 ```python
-batch_size = 16  # thay vì 32
+batch_size = 16
 ```
 
-### Lỗi "No module named 'torch'"
-```bash
-pip install torch torchvision
-```
+### Dataset path not found
 
-### Dataset không tìm thấy
-Kiểm tra đường dẫn trong cell 4:
+The current notebook expects:
+
 ```python
-dataset_path = 'd:/DS/internship/dataset/PlantVillage'
+dataset_path = "dataset_plant_classification"
 ```
 
-## Tham khảo
+## References
 
-- Phase 1 Literature Review: [Phase_1_Literature_Review_Report.md](Phase_1_Literature_Review_Report.md)
-- Action Plan: [guide/ACTION_PLAN_Next_Steps_PLANT.txt](guide/ACTION_PLAN_Next_Steps_PLANT.txt)
-- Dataset Overview: [guide/dataset_overview.md](guide/dataset_overview.md)
-
-## Liên hệ
-
-Nếu có vấn đề kỹ thuật, tham khảo:
-- PyTorch Documentation: https://pytorch.org/docs/
-- PlantVillage Dataset: https://www.kaggle.com/datasets/emmareid/plantvillage-dataset
+- [PROJECT_XRAY.md](PROJECT_XRAY.md)
+- [CHANGELOG.md](CHANGELOG.md)
+- [Phase_1_Literature_Review_Report.md](Phase_1_Literature_Review_Report.md)
+- [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)
+- [guide/ACTION_PLAN_Next_Steps_PLANT.txt](guide/ACTION_PLAN_Next_Steps_PLANT.txt)
+- [guide/dataset_overview.md](guide/dataset_overview.md)
