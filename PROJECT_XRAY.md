@@ -253,6 +253,12 @@ jupyter nbconvert --to script Phase_2_Plant_Classification.ipynb
 python Phase_2_Plant_Classification.py
 ```
 
+### 3. Kaggle GPU Training (Configured)
+The notebook features dynamic environment detection. When uploaded to Kaggle:
+- It checks for the existence of `/kaggle/input`.
+- It automatically scans `/kaggle/input/*` to locate the correct directory for the `dataset_plant_classification` dataset, resolving nested folder scenarios automatically.
+- Output plots and model weights will be exported directly to `/kaggle/working/`, ready for download.
+
 ---
 
 ## 11. Common Tasks
