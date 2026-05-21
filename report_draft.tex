@@ -1,0 +1,299 @@
+\documentclass[12pt,a4paper]{report}
+
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{enumitem}
+\usepackage{xcolor}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,
+    urlcolor=cyan,
+    pdftitle={Internship Report - Plant Classification},
+    pdfauthor={Bui Duc Thang}
+}
+
+\setstretch{1.3}
+
+\title{Internship Report\\[0.5em]\large Plant Classification Using CNNs:\\From Scratch vs Pretrained Models}
+\author{Bui Duc Thang}
+\date{\today}
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+    {\Large UNIVERSITY OF SCIENCE AND TECHNOLOGY OF HANOI\par}
+    \vspace{2cm}
+    {\Huge \bfseries INTERNSHIP REPORT\par}
+    \vspace{1.2cm}
+    {\LARGE Plant Classification Using CNNs:\\From Scratch vs Pretrained Models\par}
+    \vspace{2cm}
+
+    \begin{tabular}{ll}
+        Student: & Bui Duc Thang \\
+        Student ID: & 23BI14400 \\
+        Supervisor: & Tran Hoang Tung \\
+        Organization: & Internship Project \\
+    \end{tabular}
+
+    \vfill
+    {\large Hanoi, \today\par}
+\end{titlepage}
+
+\pagenumbering{roman}
+\tableofcontents
+\listoffigures
+\listoftables
+\clearpage
+
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+This report presents an internship project on plant image classification using convolutional neural networks. The main goal is to compare a custom CNN trained from scratch with pretrained ResNet50-based transfer learning approaches under a shared experimental pipeline. The project currently uses a merged dataset built from PlantVillage and Leafsnap, resulting in 76 label groups and 51{,}504 images. The report focuses on dataset preparation, model design, training strategy, evaluation metrics, and comparative analysis of performance, efficiency, and generalization.
+
+\chapter*{Acknowledgments}
+\addcontentsline{toc}{chapter}{Acknowledgments}
+% TODO: Write acknowledgments.
+
+\clearpage
+\pagenumbering{arabic}
+
+\chapter{Introduction}
+\section{Background}
+Plant image classification is an important computer vision task with applications in agriculture, biodiversity monitoring, and intelligent advisory systems. Deep learning models, especially convolutional neural networks, have demonstrated strong performance in visual recognition problems.
+
+\section{Problem Statement}
+This internship investigates how different CNN training strategies perform on plant classification. The main comparison is between:
+\begin{itemize}
+    \item a custom CNN trained from scratch,
+    \item ResNet50 with feature extraction,
+    \item ResNet50 with fine-tuning.
+\end{itemize}
+
+\section{Objectives}
+The objectives of this project are:
+\begin{itemize}
+    \item to build a reproducible training pipeline for plant classification,
+    \item to compare scratch-trained and pretrained CNN models,
+    \item to evaluate accuracy, macro F1-score, and training efficiency,
+    \item to produce a usable showcase model for inference.
+\end{itemize}
+
+\section{Scope}
+The current implementation focuses on a 76-class merged dataset:
+\begin{itemize}
+    \item PlantVillage images grouped at crop level: Pepper, Potato, Tomato,
+    \item Leafsnap images grouped at genus level.
+\end{itemize}
+
+\chapter{Literature Review}
+\section{Plant Classification and Plant Disease Classification}
+% TODO: Summarize from Phase_1_Literature_Review_Report.md.
+
+\section{Transfer Learning in Computer Vision}
+% TODO: Add feature extraction vs fine-tuning discussion.
+
+\section{Research Gap and Motivation}
+% TODO: Explain why the experiment is meaningful for internship scope.
+
+\chapter{Dataset Preparation}
+\section{Source Datasets}
+\subsection{PlantVillage}
+The local PlantVillage subset used in this project contains 15 folders and 20{,}639 images, limited to Pepper, Potato, and Tomato categories.
+
+\subsection{Leafsnap}
+Leafsnap contributes both lab and field images. The dataset contains 185 species in the lab split and 184 species in the field split.
+
+\section{Cleaning and Restructuring Pipeline}
+The dataset preparation process consists of:
+\begin{enumerate}
+    \item extracting and cleaning raw filenames,
+    \item restructuring PlantVillage by crop name,
+    \item restructuring Leafsnap by genus name,
+    \item removing metadata files and keeping image files only.
+\end{enumerate}
+
+\section{Final Dataset}
+The final dataset used for training is \texttt{dataset\_plant\_classification}:
+\begin{itemize}
+    \item 76 classes,
+    \item 51{,}504 images,
+    \item image-only contents (\texttt{.jpg}, \texttt{.jpeg}, \texttt{.png}).
+\end{itemize}
+
+\section{Class Distribution}
+% TODO: Insert a table or chart of top classes.
+
+\chapter{Methodology}
+\section{Experimental Pipeline}
+The training workflow includes:
+\begin{itemize}
+    \item dataset loading,
+    \item stratified train/validation/test split,
+    \item image preprocessing and augmentation,
+    \item model training,
+    \item evaluation on the test set,
+    \item saving checkpoints and final artifacts.
+\end{itemize}
+
+\section{Data Split}
+The dataset is split into:
+\begin{itemize}
+    \item 70\% training,
+    \item 15\% validation,
+    \item 15\% test.
+\end{itemize}
+
+\section{Image Preprocessing}
+The current training pipeline applies:
+\begin{itemize}
+    \item resize to $224 \times 224$,
+    \item random horizontal flip,
+    \item random rotation,
+    \item color jitter,
+    \item ImageNet normalization.
+\end{itemize}
+
+\section{Evaluation Metrics}
+The models are evaluated using:
+\begin{itemize}
+    \item accuracy,
+    \item precision (macro),
+    \item recall (macro),
+    \item F1-score (macro),
+    \item confusion matrix,
+    \item runtime comparison.
+\end{itemize}
+
+\chapter{Model Design}
+\section{Custom CNN Baseline}
+The custom CNN uses four convolutional blocks with channel sizes:
+\[
+3 \rightarrow 32 \rightarrow 64 \rightarrow 128 \rightarrow 256
+\]
+Each block includes convolution, batch normalization, ReLU activation, and pooling. The classifier head uses dropout and a final linear layer.
+
+\section{ResNet50 Feature Extraction}
+In the feature extraction setting, the pretrained ResNet50 backbone is frozen and only the classifier head is trained.
+
+\section{ResNet50 Fine-Tuning}
+In the fine-tuning setting, the final residual block and classifier head are updated during training.
+
+\chapter{Training Configuration}
+\section{Hardware and Execution Environment}
+% TODO: Fill in local machine / Kaggle GPU information.
+
+\section{Hyperparameters}
+\begin{table}[H]
+    \centering
+    \caption{Baseline training configuration}
+    \begin{tabular}{ll}
+        \toprule
+        Parameter & Value \\
+        \midrule
+        Image size & 224 \\
+        Batch size & 32 \\
+        Epochs & 50 \\
+        Optimizer & Adam \\
+        Weight decay & $1 \times 10^{-4}$ \\
+        Early stopping patience & 7 \\
+        Learning rate (Custom CNN) & $1 \times 10^{-3}$ \\
+        Learning rate (ResNet50 FE) & $1 \times 10^{-3}$ \\
+        Learning rate (ResNet50 FT) & $1 \times 10^{-4}$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Checkpoint and Logging Strategy}
+% TODO: Document best model, last model, epoch checkpoints, history.csv, summary.json.
+
+\chapter{Experiments}
+\section{Experiment 1: Custom CNN from Scratch}
+% TODO: Add training observations and results.
+
+\section{Experiment 2: ResNet50 Feature Extraction}
+% TODO: Add training observations and results.
+
+\section{Experiment 3: ResNet50 Fine-Tuning}
+% TODO: Add training observations and results.
+
+\chapter{Results and Analysis}
+\section{Quantitative Results}
+% TODO: Insert final comparison table.
+
+\begin{table}[H]
+    \centering
+    \caption{Model comparison template}
+    \begin{tabular}{lcccc}
+        \toprule
+        Model & Accuracy & Macro Precision & Macro Recall & Macro F1 \\
+        \midrule
+        Custom CNN & -- & -- & -- & -- \\
+        ResNet50 FE & -- & -- & -- & -- \\
+        ResNet50 FT & -- & -- & -- & -- \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Training Curves}
+% TODO: Insert training curve figures.
+
+\section{Confusion Matrix Analysis}
+% TODO: Insert and discuss confusion matrices.
+
+\section{Runtime and Efficiency}
+% TODO: Compare training time and stability across models.
+
+\section{Discussion}
+% TODO: Interpret trade-offs between scratch and pretrained methods.
+
+\chapter{Limitations and Future Work}
+\section{Current Limitations}
+\begin{itemize}
+    \item The dataset is a merged plant classification dataset rather than a pure disease-classification benchmark.
+    \item Class imbalance remains significant, especially for Tomato and some Leafsnap genera.
+    \item Long-running Kaggle sessions may interrupt full experiments.
+\end{itemize}
+
+\section{Future Work}
+\begin{itemize}
+    \item Resume-capable training checkpoints,
+    \item weighted loss or class-balancing strategies,
+    \item comparison with additional backbones such as MobileNetV2 or EfficientNet,
+    \item dedicated inference demo or deployment interface.
+\end{itemize}
+
+\chapter{Conclusion}
+This internship project establishes a practical pipeline for large-scale plant classification using both scratch-trained and pretrained CNN models. The report is expected to show the relative strengths of custom CNNs and transfer learning approaches in terms of performance, training efficiency, and deployment readiness.
+
+\appendix
+\chapter{Project Files}
+\begin{itemize}
+    \item \texttt{Phase\_2\_Plant\_Classification.ipynb}
+    \item \texttt{Kaggle\_Full\_Training\_Plant\_Classification.ipynb}
+    \item \texttt{Kaggle\_Showcase\_Inference.ipynb}
+    \item \texttt{Smoke\_Test\_Kaggle.ipynb}
+    \item \texttt{01\_extract\_clean.py}
+    \item \texttt{02\_restructure\_dataset.py}
+\end{itemize}
+
+\chapter{References}
+\begin{enumerate}[label={[\arabic*]}]
+    \item Hughes, D. P., and Salathe, M. An open access repository of images on plant health to aid in crop disease diagnosis.
+    \item Kumar, N., et al. LeafSnap: A Computer Vision System for Automatic Plant Species Identification.
+    \item Yosinski, J., et al. How transferable are features in deep neural networks?
+    \item Akhand, A. S., et al. A comparative study of custom CNNs, pre-trained models, and transfer learning approaches for plant disease classification.
+\end{enumerate}
+
+\end{document}
