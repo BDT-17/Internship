@@ -2,7 +2,7 @@
 
 This repository currently implements a Phase 2 experiment that compares a CNN trained from scratch against pretrained ResNet50 variants for plant species classification.
 
-Important: the current notebook no longer uses the original 15 PlantVillage disease classes directly. It now uses a merged dataset with:
+Important: this project is a plant classification project. The current notebook uses a merged dataset with:
 - 3 crop-level classes from PlantVillage: `Pepper` (2,475 images), `Potato` (2,152 images), `Tomato` (16,011 images)
 - 73 tree-genus classes from Leafsnap (including `Abies`, `Acer`, `Betula`, `Magnolia`, `Pinus`, `Quercus`, `Ulmus`)
 - 76 total classes in `dataset_plant_classification` (pure image files only, metadata `.txt` files removed)
@@ -53,14 +53,14 @@ internship/
 - 15 classes
 - 20,639 images total
 - Class breakdown:
-  - Pepper: 2 disease folders
-  - Potato: 3 disease folders
-  - Tomato: 10 disease folders
+  - Pepper: 2 source folders
+  - Potato: 3 source folders
+  - Tomato: 10 source folders
 
 `dataset/leafsnap-dataset`
 - `images/lab`: 185 species, 23,147 images
 - `images/field`: 184 species, 7,719 images
-- This is a tree-species dataset, not a crop disease dataset
+- This is a tree-species dataset that extends the project beyond crop-only labels
 
 ### 2. Cleaned extraction folder
 
@@ -91,14 +91,14 @@ This dataset is produced by `02_restructure_dataset.py`.
 The merged label logic comes from `02_restructure_dataset.py`.
 
 ### PlantVillage
-- disease labels are discarded
+- original PlantVillage subcategory labels are collapsed
 - folders are grouped by crop name only
 
 Examples:
 - `Pepper__bell___Bacterial_spot` -> `Pepper`
 - `Pepper__bell___healthy` -> `Pepper`
-- all 3 potato disease folders -> `Potato`
-- all 10 tomato disease folders -> `Tomato`
+- all 3 potato source folders -> `Potato`
+- all 10 tomato source folders -> `Tomato`
 
 ### Leafsnap
 - species labels are grouped by genus
@@ -166,16 +166,16 @@ After running the notebook you should get:
 - `confusion_matrices.png`
 - `metrics_comparison.png`
 
-## Current research caveat
+## Current research framing
 
-If the internship goal is plant disease classification, the current merged dataset is still not a clean disease-classification benchmark, because:
-- PlantVillage labels were collapsed from disease level to crop level
-- Leafsnap labels are tree genera, not crop diseases
+This repository is framed as a broad plant classification project. The final dataset combines:
+- crop-level PlantVillage labels: `Pepper`, `Potato`, `Tomato`
+- tree-genus Leafsnap labels such as `Acer`, `Pinus`, and `Quercus`
 
-For a stronger internship project, a better target is one of these:
-1. keep the current 15 PlantVillage classes and study disease classification properly
-2. use the current 76-class merged dataset as a broader plant classification experiment
-3. keep both setups and compare disease-level vs genus/crop-level classification
+The recommended research target is therefore:
+1. compare custom CNN and pretrained CNN backbones on the 76-class plant classification task
+2. analyze accuracy, macro F1-score, class imbalance, and training efficiency
+3. select the strongest pretrained model and compare it deeply against the custom CNN baseline
 
 ## Troubleshooting
 

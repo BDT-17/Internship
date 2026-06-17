@@ -34,7 +34,7 @@ The study aims to validate transfer learning benefits regarding classification a
 
 ### Key Dataset Merging Logic:
 The project uses a merged dataset combining:
-- **PlantVillage**: Grouped at crop-level (Pepper: 2,475 images, Potato: 2,152 images, Tomato: 16,011 images) by discarding individual disease subcategories.
+- **PlantVillage**: Grouped at crop-level (Pepper: 2,475 images, Potato: 2,152 images, Tomato: 16,011 images) by collapsing the original subcategory folders.
 - **LeafSnap**: Grouped at genus-level (including Abies, Acer, Betula, Magnolia, Pinus, Quercus, Ulmus) by grouping species names by scientific genus prefix.
 
 ---
@@ -95,7 +95,7 @@ internship/
 │   ├── Masters/                   # XRAY, QA, and DEBUG Master Protocols
 │   └── skill-v6/                  # Core skill definitions and references
 ├── dataset/                       # Raw source datasets
-│   ├── PlantVillage/              # 15 classes, 20,639 images (crop diseases)
+│   ├── PlantVillage/              # 15 source folders, 20,639 crop images
 │   └── leafsnap-dataset/          # images/field (7.7K) & images/lab (23.1K) tree species
 ├── dataset_clean/                 # Intermediary clean extracted dataset
 ├── dataset_plant_classification/  # Final structured training dataset (76 classes, 51.5K images)
@@ -165,7 +165,7 @@ Custom CNN    ResNet50 Feature Extraction    ResNet50 Fine-Tuning
 
 ### 3. Primary Executable Notebook
 * **`notebooks/Phase_2_Plant_Classification.ipynb`**:
-  * Loads images using a custom `Dataset` class (`PlantDiseaseDataset`) with Pillow.
+  * Loads images using a custom `Dataset` class (`PlantImageDataset`) with Pillow.
   * Implements stratified splits by ensuring class distributions remain consistent across train, validation, and test datasets.
   * Implements image augmentation (Resize 256x256, Random Flips, Rotations, Color Jitter, and ImageNet standardization).
   * Defines the three candidate architectures and executes training/evaluation metrics logs.

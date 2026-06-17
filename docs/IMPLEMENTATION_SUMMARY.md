@@ -34,7 +34,7 @@
 
 `scripts/02_restructure_dataset.py`
 - converts the source data into `dataset_plant_classification/`
-- collapses PlantVillage disease folders into crop-level folders
+- collapses PlantVillage source folders into crop-level folders
 - groups Leafsnap species folders into genus-level folders
 - produces the merged training dataset currently used by the notebook
 
@@ -82,7 +82,7 @@ The current result is caused by the design of `scripts/02_restructure_dataset.py
 What the script does:
 1. rebuilds `dataset_plant_classification` from scratch
 2. keeps only image files
-3. groups PlantVillage disease folders by crop name
+3. groups PlantVillage source folders by crop name
 4. groups Leafsnap species folders by genus
 5. merges both `field` and `lab` Leafsnap images into the same genus folders
 
@@ -95,12 +95,12 @@ Examples:
 
 ## Interpretation for the internship
 
-For an internship project, this is now a much healthier dataset size for general plant classification, but it is still a different task from plant disease classification.
+For an internship project, this is now a healthy dataset size for broad plant classification.
 
 Why this matters:
 - the task is now mixed crop-level and tree-genus classification
 - it is broader and more realistic than the previous 3-class setup
-- but it no longer matches a pure disease-classification research question
+- it should be described as crop/genus plant classification
 
 When this merged dataset is useful:
 - as a stronger plant classification internship dataset
@@ -110,10 +110,10 @@ When this merged dataset is useful:
 ## Recommended next move
 
 Best next option:
-- decide explicitly between:
-  - disease classification using the original 15 PlantVillage classes
-  - broad plant classification using the new 76-class merged dataset
+- keep the 76-class merged dataset as the main benchmark
+- add two pretrained backbones such as EfficientNet-B0 and DenseNet121
+- evaluate the best model against the custom CNN baseline using test accuracy, macro F1-score, confusion matrices, and class-level analysis
 
 Reason:
-- both are now technically feasible with the local data you already have
-- the right choice depends on whether the internship topic is about diseases or plant identity
+- this matches the current dataset and notebook implementation
+- it gives the internship report a clear plant classification story

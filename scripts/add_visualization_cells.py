@@ -262,7 +262,7 @@ new_cells = [
             "print('CONCLUSION:')\n",
             "print('='*80)\n",
             "print('Transfer learning with pretrained models (ResNet50) significantly outperforms')\n",
-            "print('training from scratch for plant disease classification:')\n",
+            "print('training from scratch for plant classification:')\n",
             "print('  • Higher accuracy and F1-scores')\n",
             "print('  • Faster convergence (reduced training time)')\n",
             "print('  • Better generalization (smaller train-val gap)')\n",
