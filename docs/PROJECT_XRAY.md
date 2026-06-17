@@ -70,14 +70,14 @@ If starting with raw archives:
 python 01_extract_clean.py
 
 # Group classes by crop (PlantVillage) and genus (LeafSnap), then structure training folder
-python 02_restructure_dataset.py
+python scripts/02_restructure_dataset.py
 ```
 *Note: The processed dataset `dataset_plant_classification` containing 76 classes and 51,504 images will be generated automatically.*
 
 ### Step 5: Launch Jupyter & Run Experiment
 Start the notebook server:
 ```bash
-jupyter notebook Phase_2_Plant_Classification.ipynb
+jupyter notebook notebooks/Phase_2_Plant_Classification.ipynb
 ```
 Execute all cells sequentially to run the models and generate comparative figures:
 - `training_curves.png`
@@ -99,8 +99,11 @@ internship/
 │   └── leafsnap-dataset/          # images/field (7.7K) & images/lab (23.1K) tree species
 ├── dataset_clean/                 # Intermediary clean extracted dataset
 ├── dataset_plant_classification/  # Final structured training dataset (76 classes, 51.5K images)
-├── guide/                         # Documentation, guides, and internship abstracts
-├── scratch/                       # Temporary scripts and parsed proposal texts
+├── docs/                          # Reports, guides, X-Ray docs, and admin files
+├── scripts/                       # Dataset and notebook utility scripts
+├── notebooks/                     # Primary, Kaggle, showcase, and smoke-test notebooks
+├── archive/                       # Backup notebooks, checkpoints, and drafts
+├── data/                          # Large archived packages
 ├── venv/                          # Python virtual environment
 ├── 01_extract_clean.py            # Dataset extraction script
 ├── 02_restructure_dataset.py      # Dataset consolidation script
@@ -156,21 +159,21 @@ Custom CNN    ResNet50 Feature Extraction    ResNet50 Fine-Tuning
 * **`clean.py`**: Scans the PlantVillage directory and replaces non-breaking space characters (`\xa0`) or trailing whitespaces with empty characters.
 
 ### 2. Notebook Management & Hotfix Tools
-* **`update_nb.py`**: Utility to update paths inside the JSON file of the notebook, replacing references from `dataset/PlantVillage` to the structured `dataset_plant_classification` path.
-* **`fix_notebook_path.py`**: Ensures the data load path parameter inside `Phase_2_Plant_Classification.ipynb` does not contain local absolute file references.
-* **`add_visualization_cells.py`**: Programmatically appends metrics tables, training curve plots, confusion matrices, and conclusions to the backup notebook to form the final publication notebook.
+* **`scripts/update_nb.py`**: Utility to update paths inside the JSON file of the notebook, replacing references from `dataset/PlantVillage` to the structured `dataset_plant_classification` path.
+* **`scripts/fix_notebook_path.py`**: Ensures the data load path parameter inside `notebooks/Phase_2_Plant_Classification.ipynb` does not contain local absolute file references.
+* **`scripts/add_visualization_cells.py`**: Programmatically appends metrics tables, training curve plots, confusion matrices, and conclusions to the backup notebook to form the final publication notebook.
 
 ### 3. Primary Executable Notebook
-* **`Phase_2_Plant_Classification.ipynb`**:
+* **`notebooks/Phase_2_Plant_Classification.ipynb`**:
   * Loads images using a custom `Dataset` class (`PlantDiseaseDataset`) with Pillow.
   * Implements stratified splits by ensuring class distributions remain consistent across train, validation, and test datasets.
   * Implements image augmentation (Resize 256x256, Random Flips, Rotations, Color Jitter, and ImageNet standardization).
   * Defines the three candidate architectures and executes training/evaluation metrics logs.
 
 ### 4. Kaggle Training & Evaluation Notebooks
-* **`Kaggle_Full_Training_Plant_Classification.ipynb`**: Notebook configured specifically for Kaggle environments to execute the full training of all 3 models (Custom CNN, ResNet50 Feature Extraction, and ResNet50 Fine-tuning) over 50 epochs. Outputs the training logs, curves, confusion matrices, and saved model weights to `/kaggle/working/plant_training_outputs`.
-* **`Smoke_Test_Kaggle.ipynb`**: A quick verification notebook that trains a smaller `TinyCNN` model on a subset of 8 classes for 1 epoch. Used to sanity-check path references, CUDA acceleration, and metric generation on Kaggle before starting full training.
-* **`Kaggle_Showcase_Inference.ipynb`**: Demo notebook to perform inference on a custom image using the best trained weights saved from the Kaggle training run, visualizing the top-5 predicted classes with confidence percentages.
+* **`notebooks/Kaggle_Full_Training_Plant_Classification.ipynb`**: Notebook configured specifically for Kaggle environments to execute the full training of all 3 models (Custom CNN, ResNet50 Feature Extraction, and ResNet50 Fine-tuning) over 50 epochs. Outputs the training logs, curves, confusion matrices, and saved model weights to `/kaggle/working/plant_training_outputs`.
+* **`notebooks/Smoke_Test_Kaggle.ipynb`**: A quick verification notebook that trains a smaller `TinyCNN` model on a subset of 8 classes for 1 epoch. Used to sanity-check path references, CUDA acceleration, and metric generation on Kaggle before starting full training.
+* **`notebooks/Kaggle_Showcase_Inference.ipynb`**: Demo notebook to perform inference on a custom image using the best trained weights saved from the Kaggle training run, visualizing the top-5 predicted classes with confidence percentages.
 
 ---
 
@@ -227,8 +230,8 @@ There are **no environment variables** required for running the pipeline. Config
 
 However, the historical pipeline changes can be traced as follows:
 * **Initial Setup**: Phase 1 Literature review established theoretical goals.
-* **Phase 2 Pipeline**: Initial scripts (`01_extract_clean.py`, `02_restructure_dataset.py`) created to handle dataset processing.
-* **Refactoring Phase**: Helper scripts (`update_nb.py`, `fix_notebook_path.py`, `add_visualization_cells.py`) implemented to resolve pathing issues and add visual comparison outputs to the Jupyter notebook.
+* **Phase 2 Pipeline**: Initial scripts (`scripts/01_extract_clean.py`, `scripts/02_restructure_dataset.py`) created to handle dataset processing.
+* **Refactoring Phase**: Helper scripts (`scripts/update_nb.py`, `scripts/fix_notebook_path.py`, `scripts/add_visualization_cells.py`) implemented to resolve pathing issues and add visual comparison outputs to the Jupyter notebook.
 
 ---
 
@@ -258,8 +261,8 @@ torch.save(model_ft.state_dict(), 'resnet50_plant_classification_finetuned.pth')
 ### 2. Running Headless (No Jupyter UI)
 To execute the pipeline directly in terminal (e.g. via SSH on a remote server):
 ```bash
-jupyter nbconvert --to script Phase_2_Plant_Classification.ipynb
-python Phase_2_Plant_Classification.py
+jupyter nbconvert --to script notebooks/Phase_2_Plant_Classification.ipynb
+python notebooks/Phase_2_Plant_Classification.py
 ```
 
 ### 3. Kaggle GPU Training (Configured)

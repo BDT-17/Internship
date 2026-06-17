@@ -4,7 +4,7 @@
 
 ### Main notebook
 
-`Phase_2_Plant_Classification.ipynb`
+`notebooks/Phase_2_Plant_Classification.ipynb`
 - dataset loading with stratified split
 - 3 model settings:
   - custom CNN from scratch
@@ -28,11 +28,11 @@
 - jupyter
 - ipykernel
 
-`01_extract_clean.py`
+`scripts/01_extract_clean.py`
 - extracts the raw zip into `dataset_clean/`
 - trims problematic trailing spaces from archive member names
 
-`02_restructure_dataset.py`
+`scripts/02_restructure_dataset.py`
 - converts the source data into `dataset_plant_classification/`
 - collapses PlantVillage disease folders into crop-level folders
 - groups Leafsnap species folders into genus-level folders
@@ -77,7 +77,7 @@
 
 ## How the merged dataset is built
 
-The current result is caused by the design of `02_restructure_dataset.py`.
+The current result is caused by the design of `scripts/02_restructure_dataset.py`.
 
 What the script does:
 1. rebuilds `dataset_plant_classification` from scratch

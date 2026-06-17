@@ -11,23 +11,38 @@ Important: the current notebook no longer uses the original 15 PlantVillage dise
 
 ```text
 internship/
-|-- Phase_1_Literature_Review_Report.md
-|-- Phase_2_Plant_Classification.ipynb
-|-- Kaggle_Full_Training_Plant_Classification.ipynb
-|-- Kaggle_Showcase_Inference.ipynb
-|-- Smoke_Test_Kaggle.ipynb
-|-- dataset_plant_classification.zip
 |-- requirements.txt
+|-- notebooks/
+|   |-- Phase_2_Plant_Classification.ipynb
+|   |-- Kaggle_Full_Training_Plant_Classification.ipynb
+|   |-- Kaggle_Showcase_Inference.ipynb
+|   `-- Smoke_Test_Kaggle.ipynb
+|-- scripts/
+|   |-- 01_extract_clean.py
+|   |-- 02_restructure_dataset.py
+|   |-- add_visualization_cells.py
+|   |-- fix_notebook_path.py
+|   `-- update_nb.py
+|-- docs/
+|   |-- CHANGELOG.md
+|   |-- IMPLEMENTATION_SUMMARY.md
+|   |-- PROJECT_XRAY.md
+|   |-- admin/
+|   |-- guides/
+|   `-- reports/
+|-- data/
+|   `-- archives/
+|       `-- dataset_plant_classification.zip
+|-- archive/
+|   |-- Phase_2_Plant_Classification_backup.ipynb
+|   |-- drafts/
+|   `-- notebook_checkpoints/
 |-- dataset/
 |   |-- PlantVillage/
 |   `-- leafsnap-dataset/
 |-- dataset_clean/
 |   `-- dataset/
-|-- dataset_plant_classification/
-|-- 01_extract_clean.py
-|-- 02_restructure_dataset.py
-|-- IMPLEMENTATION_SUMMARY.md
-`-- guide/
+`-- dataset_plant_classification/
 ```
 
 ## Dataset status
@@ -120,7 +135,7 @@ python -c "import torch; print(f'PyTorch: {torch.__version__}'); print(f'CUDA: {
 ## Running the experiment
 
 ```bash
-jupyter notebook Phase_2_Plant_Classification.ipynb
+jupyter notebook notebooks/Phase_2_Plant_Classification.ipynb
 ```
 
 ## Notebook contents
@@ -182,9 +197,9 @@ dataset_path = "dataset_plant_classification"
 
 ## References
 
-- [PROJECT_XRAY.md](PROJECT_XRAY.md)
-- [CHANGELOG.md](CHANGELOG.md)
-- [Phase_1_Literature_Review_Report.md](Phase_1_Literature_Review_Report.md)
-- [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)
-- [guide/ACTION_PLAN_Next_Steps_PLANT.txt](guide/ACTION_PLAN_Next_Steps_PLANT.txt)
-- [guide/dataset_overview.md](guide/dataset_overview.md)
+- [PROJECT_XRAY.md](docs/PROJECT_XRAY.md)
+- [CHANGELOG.md](docs/CHANGELOG.md)
+- [Phase_1_Literature_Review_Report.md](docs/reports/Phase_1_Literature_Review_Report.md)
+- [IMPLEMENTATION_SUMMARY.md](docs/IMPLEMENTATION_SUMMARY.md)
+- [ACTION_PLAN_Next_Steps_PLANT.txt](docs/guides/ACTION_PLAN_Next_Steps_PLANT.txt)
+- [dataset_overview.md](docs/guides/dataset_overview.md)

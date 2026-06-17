@@ -2,9 +2,14 @@
 Script to add visualization and analysis cells to the Phase 2 notebook
 """
 import json
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+BACKUP_NOTEBOOK_PATH = ROOT / "archive" / "Phase_2_Plant_Classification_backup.ipynb"
+OUTPUT_NOTEBOOK_PATH = ROOT / "notebooks" / "Phase_2_Plant_Classification.ipynb"
 
 # Read the backup notebook
-with open('Phase_2_Plant_Classification_backup.ipynb', 'r', encoding='utf-8') as f:
+with open(BACKUP_NOTEBOOK_PATH, 'r', encoding='utf-8') as f:
     notebook = json.load(f)
 
 # New cells to add
@@ -272,7 +277,7 @@ new_cells = [
 notebook['cells'].extend(new_cells)
 
 # Write updated notebook
-with open('Phase_2_Plant_Classification.ipynb', 'w', encoding='utf-8') as f:
+with open(OUTPUT_NOTEBOOK_PATH, 'w', encoding='utf-8') as f:
     json.dump(notebook, f, indent=1, ensure_ascii=False)
 
 print("Successfully added visualization and analysis cells to notebook!")

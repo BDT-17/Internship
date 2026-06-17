@@ -1,6 +1,11 @@
 dataset/
-guide/
 .codex/
 dataset_clean/
 dataset_plant_classification/
-scratch/
+data/archives/
+docs/guides/
+scripts/scratch/
+archive/drafts/
+venv/
+.ipynb_checkpoints/
+__pycache__/

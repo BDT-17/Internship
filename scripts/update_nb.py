@@ -1,6 +1,8 @@
 import json
+from pathlib import Path
 
-file_path = 'Phase_2_Plant_Classification.ipynb'
+ROOT = Path(__file__).resolve().parents[1]
+file_path = ROOT / "notebooks" / "Phase_2_Plant_Classification.ipynb"
 with open(file_path, 'r', encoding='utf-8') as f:
     nb = json.load(f)
 
