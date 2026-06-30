@@ -178,11 +178,43 @@ The models are evaluated using:
 
 \chapter{Model Design}
 \section{Custom CNN Baseline}
-The custom CNN uses four convolutional blocks with channel sizes:
-\[
-3 \rightarrow 32 \rightarrow 64 \rightarrow 128 \rightarrow 256
-\]
-Each block includes convolution, batch normalization, ReLU activation, and pooling. The classifier head uses dropout and a final linear layer.
+The custom CNN is used as the from-scratch baseline. It is intentionally simpler than ResNet50 so that the experiment can measure the difference between learning visual features from the project dataset alone and reusing pretrained ImageNet features. The network receives RGB images resized to $224 \times 224$ and predicts one of 76 plant classes.
+
+\begin{table}[H]
+    \centering
+    \caption{Custom CNN architecture for 76-class plant classification}
+    \begin{tabular}{llllr}
+        \toprule
+        Stage & Layer & Kernel / Operation & Output Shape & Parameters \\
+        \midrule
+        Input & Image tensor & -- & $3 \times 224 \times 224$ & 0 \\
+        Block 1 & Conv2D $3 \rightarrow 64$ & $3 \times 3$, padding 1 & $64 \times 224 \times 224$ & 1{,}792 \\
+                & ReLU & inplace & $64 \times 224 \times 224$ & 0 \\
+                & MaxPool2D & $2 \times 2$, stride 2 & $64 \times 112 \times 112$ & 0 \\
+        Block 2 & Conv2D $64 \rightarrow 128$ & $3 \times 3$, padding 1 & $128 \times 112 \times 112$ & 73{,}856 \\
+                & ReLU & inplace & $128 \times 112 \times 112$ & 0 \\
+                & MaxPool2D & $2 \times 2$, stride 2 & $128 \times 56 \times 56$ & 0 \\
+        Block 3 & Conv2D $128 \rightarrow 256$ & $3 \times 3$, padding 1 & $256 \times 56 \times 56$ & 295{,}168 \\
+                & ReLU & inplace & $256 \times 56 \times 56$ & 0 \\
+                & MaxPool2D & $2 \times 2$, stride 2 & $256 \times 28 \times 28$ & 0 \\
+        Block 4 & Conv2D $256 \rightarrow 512$ & $3 \times 3$, padding 1 & $512 \times 28 \times 28$ & 1{,}180{,}160 \\
+                & ReLU & inplace & $512 \times 28 \times 28$ & 0 \\
+                & MaxPool2D & $2 \times 2$, stride 2 & $512 \times 14 \times 14$ & 0 \\
+        Pooling & AdaptiveAvgPool2D & $1 \times 1$ output & $512 \times 1 \times 1$ & 0 \\
+        Classifier & Flatten & -- & 512 & 0 \\
+                   & Linear $512 \rightarrow 256$ & fully connected & 256 & 131{,}328 \\
+                   & ReLU & inplace & 256 & 0 \\
+                   & Dropout & $p=0.5$ & 256 & 0 \\
+                   & Linear $256 \rightarrow 76$ & fully connected & 76 & 19{,}532 \\
+        \midrule
+        Total & -- & -- & -- & 1{,}701{,}836 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+The four convolutional blocks progressively increase channel depth from 64 to 512 while reducing spatial resolution from $224 \times 224$ to $14 \times 14$. This design lets early layers learn simple edges, colors, and textures, while deeper layers learn more abstract leaf shape and plant-category patterns. The adaptive average pooling layer converts the final feature map into a fixed 512-dimensional representation, avoiding a large flatten layer and reducing the number of classifier parameters. Dropout with $p=0.5$ is used in the classifier to reduce overfitting because this model is trained entirely from scratch.
+
+This architecture has approximately 1.70 million trainable parameters, which makes it much smaller than ResNet50. Therefore, it is a suitable baseline for testing whether a lightweight project-specific CNN can approach the performance of larger pretrained models.
 
 \section{ResNet50 Feature Extraction}
 In the feature extraction setting, the pretrained ResNet50 backbone is frozen and only the classifier head is trained.
@@ -286,6 +318,7 @@ This internship project establishes a practical pipeline for large-scale plant c
     \item \texttt{Smoke\_Test\_Kaggle.ipynb}
     \item \texttt{01\_extract\_clean.py}
     \item \texttt{02\_restructure\_dataset.py}
+    \item \texttt{model\_summary.py}
 \end{itemize}
 
 \chapter{References}

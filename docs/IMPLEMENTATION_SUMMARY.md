@@ -14,6 +14,29 @@
 - evaluation metrics and comparison plots
 - confusion matrices and final summary cells
 
+### Custom CNN baseline
+
+The from-scratch baseline in `notebooks/Phase_2_Plant_Classification.ipynb` uses a four-block convolutional architecture:
+
+| Stage | Main operation | Output shape for 224x224 input | Parameters |
+|---|---|---:|---:|
+| Input | RGB image | `3 x 224 x 224` | 0 |
+| Block 1 | Conv2D `3 -> 64`, ReLU, MaxPool | `64 x 112 x 112` | 1,792 |
+| Block 2 | Conv2D `64 -> 128`, ReLU, MaxPool | `128 x 56 x 56` | 73,856 |
+| Block 3 | Conv2D `128 -> 256`, ReLU, MaxPool | `256 x 28 x 28` | 295,168 |
+| Block 4 | Conv2D `256 -> 512`, ReLU, MaxPool | `512 x 14 x 14` | 1,180,160 |
+| Pooling | AdaptiveAvgPool2D | `512 x 1 x 1` | 0 |
+| Classifier | Linear `512 -> 256`, ReLU, Dropout 0.5, Linear `256 -> 76` | `76` | 150,860 |
+
+Total trainable parameters: **1,701,836**.
+
+Design rationale:
+- `3x3` convolutions preserve local texture and edge learning while keeping the architecture simple.
+- Channel depth increases from 64 to 512 so deeper layers can learn more abstract plant-category patterns.
+- Max pooling progressively reduces spatial resolution and increases the effective receptive field.
+- Adaptive average pooling avoids a very large flatten layer and makes the classifier compact.
+- Dropout regularizes the classifier because the model is trained from scratch.
+
 ### Support files
 
 `requirements.txt`

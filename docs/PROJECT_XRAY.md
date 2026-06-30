@@ -169,6 +169,8 @@ Custom CNN    ResNet50 Feature Extraction    ResNet50 Fine-Tuning
   * Implements stratified splits by ensuring class distributions remain consistent across train, validation, and test datasets.
   * Implements image augmentation (Resize 256x256, Random Flips, Rotations, Color Jitter, and ImageNet standardization).
   * Defines the three candidate architectures and executes training/evaluation metrics logs.
+  * The scratch CNN uses four Conv-ReLU-MaxPool blocks with channels `64 -> 128 -> 256 -> 512`, followed by adaptive average pooling and a `512 -> 256 -> 76` classifier.
+  * The custom CNN has 1,701,836 trainable parameters, making it a compact baseline against the larger pretrained backbones.
 
 ### 4. Kaggle Training & Evaluation Notebooks
 * **`notebooks/Kaggle_Full_Training_Plant_Classification.ipynb`**: Notebook configured specifically for Kaggle environments to execute the full training of all 3 models (Custom CNN, ResNet50 Feature Extraction, and ResNet50 Fine-tuning) over 50 epochs. Outputs the training logs, curves, confusion matrices, and saved model weights to `/kaggle/working/plant_training_outputs`.
