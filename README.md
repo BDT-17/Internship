@@ -14,15 +14,27 @@ internship/
 |-- requirements.txt
 |-- notebooks/
 |   |-- Phase_2_Plant_Classification.ipynb
+|   |-- Kaggle_Run_From_Git.ipynb
 |   |-- Kaggle_Full_Training_Plant_Classification.ipynb
 |   |-- Kaggle_Showcase_Inference.ipynb
 |   `-- Smoke_Test_Kaggle.ipynb
 |-- scripts/
 |   |-- 01_extract_clean.py
 |   |-- 02_restructure_dataset.py
+|   |-- train_kaggle.py
+|   |-- infer_kaggle.py
+|   |-- bootstrap_kaggle_repo.py
 |   |-- add_visualization_cells.py
 |   |-- fix_notebook_path.py
 |   `-- update_nb.py
+|-- plant_classifier/
+|   |-- config.py
+|   |-- data.py
+|   |-- inference.py
+|   |-- models.py
+|   |-- paths.py
+|   |-- plots.py
+|   `-- training.py
 |-- docs/
 |   |-- CHANGELOG.md
 |   |-- IMPLEMENTATION_SUMMARY.md
@@ -136,6 +148,18 @@ python -c "import torch; print(f'PyTorch: {torch.__version__}'); print(f'CUDA: {
 
 ```bash
 jupyter notebook notebooks/Phase_2_Plant_Classification.ipynb
+```
+
+You can also run the modular Python pipeline directly:
+
+```bash
+python scripts/train_kaggle.py --dataset-dir dataset_plant_classification --output-dir plant_training_outputs --epochs 50
+```
+
+For Kaggle notebooks that should always pull the latest repository code, see:
+
+```text
+docs/KAGGLE_WORKFLOW.md
 ```
 
 ## Notebook contents

@@ -9,3 +9,5 @@ archive/drafts/
 venv/
 .ipynb_checkpoints/
 __pycache__/
+plant_training_outputs/
+smoke_test_outputs/
