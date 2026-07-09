@@ -44,6 +44,95 @@ class CustomCNN(nn.Module):
         return self.classifier(x)
 
 
+class SEBlock(nn.Module):
+    """Squeeze-and-Excitation channel attention (Hu et al., CVPR 2018)."""
+
+    def __init__(self, channels: int, reduction: int = 16) -> None:
+        super().__init__()
+        hidden = max(channels // reduction, 4)
+        self.pool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Sequential(
+            nn.Linear(channels, hidden),
+            nn.ReLU(inplace=True),
+            nn.Linear(hidden, channels),
+            nn.Sigmoid(),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        batch, channels, _, _ = x.shape
+        scale = self.pool(x).view(batch, channels)
+        scale = self.fc(scale).view(batch, channels, 1, 1)
+        return x * scale
+
+
+class ResidualSEBlock(nn.Module):
+    """Residual block (He et al., CVPR 2016) with an SE module on the output."""
+
+    def __init__(self, in_channels: int, out_channels: int, stride: int = 1, reduction: int = 16) -> None:
+        super().__init__()
+        self.conv1 = nn.Conv2d(in_channels, out_channels, 3, stride, 1, bias=False)
+        self.bn1 = nn.BatchNorm2d(out_channels)
+        self.conv2 = nn.Conv2d(out_channels, out_channels, 3, 1, 1, bias=False)
+        self.bn2 = nn.BatchNorm2d(out_channels)
+        self.se = SEBlock(out_channels, reduction)
+        self.relu = nn.ReLU(inplace=True)
+        self.downsample = None
+        if stride != 1 or in_channels != out_channels:
+            self.downsample = nn.Sequential(
+                nn.Conv2d(in_channels, out_channels, 1, stride, bias=False),
+                nn.BatchNorm2d(out_channels),
+            )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        identity = x if self.downsample is None else self.downsample(x)
+        out = self.relu(self.bn1(self.conv1(x)))
+        out = self.se(self.bn2(self.conv2(out)))
+        return self.relu(out + identity)
+
+
+class CustomCNNv2(nn.Module):
+    """Improved from-scratch CNN: residual + SE blocks, ~SE-ResNet-18 scale.
+
+    Replaces the plain 4-conv stack with four residual stages carrying SE
+    attention, so the network can go deeper without vanishing gradients while
+    keeping the same GAP + dropout classifier head.
+    """
+
+    def __init__(self, num_classes: int, dropout: float = 0.3) -> None:
+        super().__init__()
+        self.stem = nn.Sequential(
+            nn.Conv2d(3, 64, 3, 1, 1, bias=False),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(2),
+        )
+        self.stage1 = self._make_stage(64, 64, blocks=2, stride=1)
+        self.stage2 = self._make_stage(64, 128, blocks=2, stride=2)
+        self.stage3 = self._make_stage(128, 256, blocks=2, stride=2)
+        self.stage4 = self._make_stage(256, 512, blocks=2, stride=2)
+        self.pool = nn.AdaptiveAvgPool2d(1)
+        self.classifier = nn.Sequential(
+            nn.Dropout(dropout),
+            nn.Linear(512, num_classes),
+        )
+
+    @staticmethod
+    def _make_stage(in_channels: int, out_channels: int, blocks: int, stride: int) -> nn.Sequential:
+        layers = [ResidualSEBlock(in_channels, out_channels, stride)]
+        for _ in range(blocks - 1):
+            layers.append(ResidualSEBlock(out_channels, out_channels, 1))
+        return nn.Sequential(*layers)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.stem(x)
+        x = self.stage1(x)
+        x = self.stage2(x)
+        x = self.stage3(x)
+        x = self.stage4(x)
+        x = torch.flatten(self.pool(x), 1)
+        return self.classifier(x)
+
+
 def load_resnet50_backbone(use_pretrained_weights: bool = True) -> nn.Module:
     if not use_pretrained_weights:
         print("USE_PRETRAINED_WEIGHTS=False -> using ResNet50 without pretrained weights")
@@ -166,6 +255,8 @@ def build_model(
 ) -> nn.Module:
     if model_name == "custom_cnn":
         return CustomCNN(num_classes)
+    if model_name == "custom_cnn_v2":
+        return CustomCNNv2(num_classes)
     if model_name == "resnet50_feature_extraction":
         return build_resnet50_feature_extractor(
             num_classes,

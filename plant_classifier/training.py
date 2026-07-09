@@ -16,6 +16,8 @@ from torch import nn
 
 from plant_classifier.config import TrainConfig
 from plant_classifier.data import build_dataloaders, discover_samples, stratified_split
+from plant_classifier.losses import build_criterion
+from plant_classifier.mixup import MixupCutmix, mixup_criterion
 from plant_classifier.models import build_model
 from plant_classifier.plots import save_confusion_matrix, save_history_plot, save_model_comparison
 
@@ -28,6 +30,25 @@ def seed_everything(seed: int) -> None:
         torch.cuda.manual_seed_all(seed)
 
 
+def build_scheduler(optimizer, config: TrainConfig):
+    if config.lr_scheduler == "none":
+        return None
+    if config.lr_scheduler == "cosine":
+        return torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=config.epochs)
+    if config.lr_scheduler == "cosine_warmup":
+        warmup_epochs = max(1, config.warmup_epochs)
+        warmup = torch.optim.lr_scheduler.LinearLR(
+            optimizer, start_factor=0.01, total_iters=warmup_epochs
+        )
+        cosine = torch.optim.lr_scheduler.CosineAnnealingLR(
+            optimizer, T_max=max(1, config.epochs - warmup_epochs)
+        )
+        return torch.optim.lr_scheduler.SequentialLR(
+            optimizer, [warmup, cosine], milestones=[warmup_epochs]
+        )
+    raise ValueError(f"Unknown lr_scheduler: {config.lr_scheduler}")
+
+
 def run_epoch(
     model: nn.Module,
     loader,
@@ -36,6 +57,7 @@ def run_epoch(
     amp_enabled: bool,
     optimizer=None,
     scaler=None,
+    mixup_fn: MixupCutmix | None = None,
 ) -> tuple[dict[str, float], list[int], list[int]]:
     is_train = optimizer is not None
     model.train() if is_train else model.eval()
@@ -51,10 +73,17 @@ def run_epoch(
         if is_train:
             optimizer.zero_grad()
 
+        use_mixup = is_train and mixup_fn is not None and mixup_fn.enabled
+
         with torch.set_grad_enabled(is_train):
             with torch.amp.autocast(device_type=device.type, enabled=amp_enabled):
-                logits = model(images)
-                loss = criterion(logits, labels)
+                if use_mixup:
+                    mixed, target_a, target_b, lam = mixup_fn(images, labels)
+                    logits = model(mixed)
+                    loss = mixup_criterion(criterion, logits, target_a, target_b, lam)
+                else:
+                    logits = model(images)
+                    loss = criterion(logits, labels)
 
             if is_train:
                 if scaler is not None and amp_enabled:
@@ -95,17 +124,19 @@ def train_one_model(
     train_loader,
     val_loader,
     test_loader,
+    criterion,
+    mixup_fn,
 ) -> tuple[dict, pd.DataFrame]:
     model_dir = config.output_dir / model_name
     model_dir.mkdir(parents=True, exist_ok=True)
 
     model = model.to(device)
-    criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(
-        filter(lambda param: param.requires_grad, model.parameters()),
-        lr=learning_rate,
-        weight_decay=config.weight_decay,
-    )
+    trainable = filter(lambda param: param.requires_grad, model.parameters())
+    if config.optimizer == "adamw":
+        optimizer = torch.optim.AdamW(trainable, lr=learning_rate, weight_decay=config.weight_decay)
+    else:
+        optimizer = torch.optim.Adam(trainable, lr=learning_rate, weight_decay=config.weight_decay)
+    scheduler = build_scheduler(optimizer, config)
     scaler = torch.amp.GradScaler("cuda") if amp_enabled else None
 
     history: list[dict[str, float]] = []
@@ -123,8 +154,11 @@ def train_one_model(
             amp_enabled,
             optimizer=optimizer,
             scaler=scaler,
+            mixup_fn=mixup_fn,
         )
         val_metrics, _, _ = run_epoch(model, val_loader, criterion, device, amp_enabled)
+        if scheduler is not None:
+            scheduler.step()
 
         row = {
             "epoch": epoch,
@@ -244,8 +278,31 @@ def run_training(config: TrainConfig) -> pd.DataFrame:
         json.dump(class_names, file, indent=2)
     pd.Series(class_counts).sort_index().to_csv(config.output_dir / "class_counts.csv")
 
+    train_class_counts = [0] * len(class_names)
+    for _, label in train_samples:
+        train_class_counts[label] += 1
+    criterion = build_criterion(
+        config.loss,
+        label_smoothing=config.label_smoothing,
+        class_counts=train_class_counts,
+        focal_gamma=config.focal_gamma,
+        cb_beta=config.cb_beta,
+        device=device,
+    )
+    mixup_fn = MixupCutmix(
+        mixup_alpha=config.mixup_alpha,
+        cutmix_alpha=config.cutmix_alpha,
+        prob=config.mixup_prob,
+    )
+    print(
+        f"Loss: {config.loss} | optimizer: {config.optimizer} | "
+        f"scheduler: {config.lr_scheduler} | label_smoothing: {config.label_smoothing} | "
+        f"mixup: {config.mixup_alpha} | cutmix: {config.cutmix_alpha}"
+    )
+
     learning_rates = {
         "custom_cnn": config.learning_rate_cnn,
+        "custom_cnn_v2": config.learning_rate_cnn_v2,
         "resnet50_feature_extraction": config.learning_rate_feature_extractor,
         "resnet50_fine_tuning": config.learning_rate_finetune,
         "efficientnet_v2_s": config.learning_rate_efficientnet_v2_s,
@@ -274,6 +331,8 @@ def run_training(config: TrainConfig) -> pd.DataFrame:
             train_loader,
             val_loader,
             test_loader,
+            criterion,
+            mixup_fn,
         )
         all_summaries.append(summary)
 

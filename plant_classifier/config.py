@@ -21,6 +21,7 @@ class TrainConfig:
     num_workers: int = 2
     epochs: int = 50
     learning_rate_cnn: float = 1e-3
+    learning_rate_cnn_v2: float = 1e-3
     learning_rate_feature_extractor: float = 1e-3
     learning_rate_finetune: float = 1e-4
     learning_rate_efficientnet_v2_s: float = 1e-4
@@ -35,6 +36,17 @@ class TrainConfig:
     save_every_epoch: bool = True
     use_pretrained_weights: bool = True
     models: tuple[str, ...] = DEFAULT_MODEL_NAMES
+    # Tier-1 training improvements (defaults keep the original behaviour).
+    optimizer: str = "adam"  # adam | adamw
+    lr_scheduler: str = "none"  # none | cosine | cosine_warmup
+    warmup_epochs: int = 3
+    label_smoothing: float = 0.0
+    loss: str = "ce"  # ce | focal | class_balanced | cb_focal
+    focal_gamma: float = 2.0
+    cb_beta: float = 0.9999
+    mixup_alpha: float = 0.0
+    cutmix_alpha: float = 0.0
+    mixup_prob: float = 0.5
 
     def validate(self) -> None:
         split_sum = self.train_ratio + self.val_ratio + self.test_ratio

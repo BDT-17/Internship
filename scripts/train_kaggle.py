@@ -29,6 +29,21 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--no-amp", action="store_true")
     parser.add_argument("--no-pretrained", action="store_true")
     parser.add_argument("--no-save-every-epoch", action="store_true")
+    # Tier-1 training improvements.
+    parser.add_argument("--optimizer", choices=["adam", "adamw"], default="adam")
+    parser.add_argument(
+        "--lr-scheduler", choices=["none", "cosine", "cosine_warmup"], default="none"
+    )
+    parser.add_argument("--warmup-epochs", type=int, default=3)
+    parser.add_argument("--label-smoothing", type=float, default=0.0)
+    parser.add_argument(
+        "--loss", choices=["ce", "focal", "class_balanced", "cb_focal"], default="ce"
+    )
+    parser.add_argument("--focal-gamma", type=float, default=2.0)
+    parser.add_argument("--cb-beta", type=float, default=0.9999)
+    parser.add_argument("--mixup-alpha", type=float, default=0.0)
+    parser.add_argument("--cutmix-alpha", type=float, default=0.0)
+    parser.add_argument("--mixup-prob", type=float, default=0.5)
     return parser.parse_args()
 
 
@@ -47,6 +62,16 @@ def main() -> None:
         save_every_epoch=not args.no_save_every_epoch,
         use_pretrained_weights=not args.no_pretrained,
         models=tuple(args.models) if args.models else DEFAULT_MODEL_NAMES,
+        optimizer=args.optimizer,
+        lr_scheduler=args.lr_scheduler,
+        warmup_epochs=args.warmup_epochs,
+        label_smoothing=args.label_smoothing,
+        loss=args.loss,
+        focal_gamma=args.focal_gamma,
+        cb_beta=args.cb_beta,
+        mixup_alpha=args.mixup_alpha,
+        cutmix_alpha=args.cutmix_alpha,
+        mixup_prob=args.mixup_prob,
     )
     summary_df = run_training(config)
     print(summary_df)
