@@ -42,6 +42,24 @@ from plant_classifier.models import build_model
 DEFAULT_CROP_PREFIXES = ("pepper", "potato", "tomato")
 
 
+def source_of_path(path: Path) -> str:
+    """Recover the acquisition source of a merged-dataset image from its name.
+
+    Leafsnap images keep their ``ls_lab_``/``ls_field_`` filename prefix after
+    the restructure step, so lab vs field is recoverable without the raw tree.
+    Everything else is a PlantVillage crop image.
+    """
+    name = path.name.lower()
+    if name.startswith("ls_lab"):
+        return "leafsnap_lab"
+    if name.startswith("ls_field"):
+        return "leafsnap_field"
+    return "plantvillage_crop"
+
+
+SOURCE_ORDER = ("plantvillage_crop", "leafsnap_lab", "leafsnap_field")
+
+
 @dataclass(slots=True)
 class GroupLabels:
     """Assigns each class index to the crop or tree-genus group."""
@@ -85,15 +103,18 @@ def collect_test_predictions(
     weights_path: Path,
     config: TrainConfig,
     device: torch.device | None = None,
-) -> tuple[list[str], np.ndarray, np.ndarray, np.ndarray, dict[str, int]]:
+) -> tuple[list[str], np.ndarray, np.ndarray, np.ndarray, dict[str, int], np.ndarray]:
     """Run inference over the reconstructed test split for one trained model.
 
-    Returns ``(class_names, labels, preds, confidences, train_counts)``.
+    Returns ``(class_names, labels, preds, confidences, train_counts, sources)``.
+    ``sources`` is aligned with ``labels``/``preds`` (the loader is unshuffled,
+    so its order matches ``test_samples``).
     """
     if device is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     class_names, test_samples, train_counts = _resolve_test_split(config)
+    sources = np.asarray([source_of_path(path) for path, _ in test_samples])
     _, eval_transform = build_transforms(config.image_size)
 
     model = build_model(model_name, len(class_names), use_pretrained_weights=False)
@@ -134,6 +155,7 @@ def collect_test_predictions(
         np.asarray(preds),
         np.asarray(confidences),
         train_counts,
+        sources,
     )
 
 
@@ -192,6 +214,46 @@ def group_analysis_frame(
             }
         )
     return pd.DataFrame(rows)
+
+
+def source_analysis_frame(
+    labels: np.ndarray,
+    preds: np.ndarray,
+    sources: np.ndarray,
+) -> pd.DataFrame:
+    """Accuracy / macro-F1 split by acquisition source.
+
+    The headline comparison for the domain-shift question is
+    ``leafsnap_lab`` vs ``leafsnap_field``: both cover the same tree genera, so
+    a large gap means the model leans on lab capture conditions (clean
+    background, controlled lighting) rather than leaf morphology.
+    """
+    rows = []
+    for source in SOURCE_ORDER:
+        mask = sources == source
+        n = int(mask.sum())
+        if n == 0:
+            continue
+        rows.append(
+            {
+                "source": source,
+                "test_images": n,
+                "accuracy": float(accuracy_score(labels[mask], preds[mask])),
+                "macro_f1": float(
+                    f1_score(labels[mask], preds[mask], average="macro", zero_division=0)
+                ),
+            }
+        )
+    frame = pd.DataFrame(rows)
+    lab = frame.loc[frame["source"] == "leafsnap_lab", "accuracy"]
+    field = frame.loc[frame["source"] == "leafsnap_field", "accuracy"]
+    if not lab.empty and not field.empty:
+        print(
+            f"  lab->field accuracy drop: {float(lab.iloc[0]):.4f} -> "
+            f"{float(field.iloc[0]):.4f} "
+            f"(gap {float(lab.iloc[0]) - float(field.iloc[0]):+.4f})"
+        )
+    return frame
 
 
 def most_confused_pairs(
@@ -314,6 +376,7 @@ def analyze_model(
     preds: np.ndarray | None = None,
     class_names: list[str] | None = None,
     train_counts: dict[str, int] | None = None,
+    sources: np.ndarray | None = None,
     crop_prefixes: tuple[str, ...] = DEFAULT_CROP_PREFIXES,
     top_confused: int = 25,
 ) -> dict:
@@ -329,7 +392,7 @@ def analyze_model(
         weights_path = model_dir / "best_model.pth"
         if not weights_path.exists():
             raise FileNotFoundError(f"Missing weights for analysis: {weights_path}")
-        class_names, labels, preds, confidences, train_counts = collect_test_predictions(
+        class_names, labels, preds, confidences, train_counts, sources = collect_test_predictions(
             model_name, weights_path, config
         )
 
@@ -346,6 +409,8 @@ def analyze_model(
     )
     if confidences is not None:
         predictions_frame["confidence"] = confidences
+    if sources is not None:
+        predictions_frame["source"] = sources
     predictions_frame.to_csv(model_dir / "test_predictions.csv", index=False)
 
     per_class = per_class_metrics_frame(class_names, labels, preds, train_counts, groups)
@@ -353,6 +418,11 @@ def analyze_model(
 
     group_frame = group_analysis_frame(per_class, labels, preds, groups)
     group_frame.to_csv(model_dir / "group_analysis.csv", index=False)
+
+    source_frame = pd.DataFrame()
+    if sources is not None:
+        source_frame = source_analysis_frame(labels, preds, sources)
+        source_frame.to_csv(model_dir / "source_analysis.csv", index=False)
 
     confused = most_confused_pairs(class_names, labels, preds, top_n=top_confused)
     confused.to_csv(model_dir / "most_confused_pairs.csv", index=False)
@@ -368,6 +438,7 @@ def analyze_model(
         "num_classes": len(class_names),
         "test_images": int(len(labels)),
         "group_analysis": group_frame.to_dict(orient="records"),
+        "source_analysis": source_frame.to_dict(orient="records"),
         "weakest_classes": weakest.to_dict(orient="records"),
     }
     with open(model_dir / "analysis_summary.json", "w", encoding="utf-8") as file:
@@ -412,6 +483,9 @@ def analyze_all_models(
         for group in summary["group_analysis"]:
             row[f"{group['group']}_accuracy"] = group["accuracy"]
             row[f"{group['group']}_macro_f1"] = group["macro_f1"]
+        for source in summary.get("source_analysis", []):
+            row[f"{source['source']}_accuracy"] = source["accuracy"]
+            row[f"{source['source']}_macro_f1"] = source["macro_f1"]
         comparison_rows.append(row)
 
     comparison = pd.DataFrame(comparison_rows)
@@ -419,4 +493,19 @@ def analyze_all_models(
     with open(config.output_dir / "analysis_comparison.json", "w", encoding="utf-8") as file:
         json.dump(summaries, file, indent=2)
     print("\nWrote analysis_comparison.csv")
+
+    # Overlay training curves for every model that still has its history.csv.
+    curve_models = tuple(
+        s["model_name"]
+        for s in summaries
+        if (config.output_dir / s["model_name"] / "history.csv").exists()
+    )
+    if curve_models:
+        save_convergence_comparison(
+            config.output_dir,
+            curve_models,
+            config.output_dir / "training_curves.png",
+        )
+        print("Wrote training_curves.png")
+
     return comparison

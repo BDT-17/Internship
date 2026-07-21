@@ -63,12 +63,15 @@ def main() -> None:
     output_dir = args.output_dir or model_root
     if output_dir != model_root:
         output_dir.mkdir(parents=True, exist_ok=True)
+        # Mirror the weights (for inference) and history.csv (for the training
+        # curves) so the analysis output_dir is a self-contained bundle.
         for model_name in args.models:
-            src = model_root / model_name / "best_model.pth"
-            if src.exists():
-                dst = output_dir / model_name
-                dst.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(src, dst / "best_model.pth")
+            dst = output_dir / model_name
+            for filename in ("best_model.pth", "history.csv"):
+                src = model_root / model_name / filename
+                if src.exists():
+                    dst.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(src, dst / filename)
 
     config = TrainConfig(
         dataset_dir=dataset_dir,
