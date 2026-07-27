@@ -140,6 +140,11 @@ def train_one_model(
     scaler = torch.amp.GradScaler("cuda") if amp_enabled else None
 
     history: list[dict[str, float]] = []
+    # Select the best checkpoint by the configured validation metric. For this
+    # long-tailed task macro-F1 is the honest choice (val accuracy just tracks
+    # the largest class); the column names below map to the history row keys.
+    selection_key = config.model_selection_metric  # "val_f1_macro" | "val_accuracy"
+    best_selection_score = -1.0
     best_val_acc = -1.0
     best_state = None
     patience_counter = 0
@@ -180,7 +185,8 @@ def train_one_model(
         if config.save_every_epoch:
             torch.save(model.state_dict(), model_dir / f"epoch_{epoch:02d}.pth")
 
-        if row["val_accuracy"] > best_val_acc:
+        if row[selection_key] > best_selection_score:
+            best_selection_score = row[selection_key]
             best_val_acc = row["val_accuracy"]
             best_state = copy.deepcopy(model.state_dict())
             torch.save(best_state, model_dir / "best_model.pth")
@@ -225,6 +231,8 @@ def train_one_model(
     summary = {
         "model_name": model_name,
         "epochs_completed": len(history),
+        "model_selection_metric": selection_key,
+        "best_selection_score": best_selection_score,
         "best_val_accuracy": best_val_acc,
         "test_metrics": test_metrics,
         "runtime_seconds": elapsed,

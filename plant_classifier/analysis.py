@@ -98,17 +98,24 @@ def _resolve_test_split(
     return class_names, test_samples, train_counts
 
 
+TOP_K = 5
+
+
 def collect_test_predictions(
     model_name: str,
     weights_path: Path,
     config: TrainConfig,
     device: torch.device | None = None,
-) -> tuple[list[str], np.ndarray, np.ndarray, np.ndarray, dict[str, int], np.ndarray]:
+) -> tuple[
+    list[str], np.ndarray, np.ndarray, np.ndarray, dict[str, int], np.ndarray, np.ndarray
+]:
     """Run inference over the reconstructed test split for one trained model.
 
-    Returns ``(class_names, labels, preds, confidences, train_counts, sources)``.
-    ``sources`` is aligned with ``labels``/``preds`` (the loader is unshuffled,
-    so its order matches ``test_samples``).
+    Returns ``(class_names, labels, preds, confidences, train_counts, sources,
+    topk_preds)``. ``sources`` is aligned with ``labels``/``preds`` (the loader
+    is unshuffled, so its order matches ``test_samples``). ``topk_preds`` has
+    shape ``(N, min(TOP_K, num_classes))``: the class indices ranked by
+    probability, so top-k accuracy is computable without re-running inference.
     """
     if device is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -126,6 +133,8 @@ def collect_test_predictions(
     labels: list[int] = []
     preds: list[int] = []
     confidences: list[float] = []
+    topk_chunks: list[np.ndarray] = []
+    k = min(TOP_K, len(class_names))
 
     from plant_classifier.data import ImageListDataset
     from torch.utils.data import DataLoader
@@ -144,10 +153,17 @@ def collect_test_predictions(
             images = images.to(device, non_blocking=True)
             logits = model(images)
             probs = torch.softmax(logits, dim=1)
-            batch_conf, batch_pred = torch.max(probs, dim=1)
+            top_probs, top_indices = torch.topk(probs, k=k, dim=1)
             labels.extend(batch_labels.numpy().tolist())
-            preds.extend(batch_pred.cpu().numpy().tolist())
-            confidences.extend(batch_conf.cpu().numpy().tolist())
+            preds.extend(top_indices[:, 0].cpu().numpy().tolist())
+            confidences.extend(top_probs[:, 0].cpu().numpy().tolist())
+            topk_chunks.append(top_indices.cpu().numpy())
+
+    topk_preds = (
+        np.concatenate(topk_chunks, axis=0)
+        if topk_chunks
+        else np.empty((0, k), dtype=int)
+    )
 
     return (
         class_names,
@@ -156,6 +172,7 @@ def collect_test_predictions(
         np.asarray(confidences),
         train_counts,
         sources,
+        topk_preds,
     )
 
 
@@ -254,6 +271,20 @@ def source_analysis_frame(
             f"(gap {float(lab.iloc[0]) - float(field.iloc[0]):+.4f})"
         )
     return frame
+
+
+def top_k_accuracy(labels: np.ndarray, topk_preds: np.ndarray, k: int) -> float | None:
+    """Fraction of samples whose true label is among the model's top ``k`` guesses.
+
+    ``topk_preds`` is the ``(N, K)`` matrix of class indices ranked by
+    probability from :func:`collect_test_predictions`. Returns ``None`` when the
+    matrix has fewer than ``k`` columns (fewer classes than ``k``, or the
+    reuse-from-training path where top-k was never captured).
+    """
+    if topk_preds is None or topk_preds.ndim != 2 or topk_preds.shape[1] < k:
+        return None
+    hits = (topk_preds[:, :k] == labels[:, None]).any(axis=1)
+    return float(hits.mean())
 
 
 def most_confused_pairs(
@@ -377,6 +408,7 @@ def analyze_model(
     class_names: list[str] | None = None,
     train_counts: dict[str, int] | None = None,
     sources: np.ndarray | None = None,
+    topk_preds: np.ndarray | None = None,
     crop_prefixes: tuple[str, ...] = DEFAULT_CROP_PREFIXES,
     top_confused: int = 25,
 ) -> dict:
@@ -392,9 +424,15 @@ def analyze_model(
         weights_path = model_dir / "best_model.pth"
         if not weights_path.exists():
             raise FileNotFoundError(f"Missing weights for analysis: {weights_path}")
-        class_names, labels, preds, confidences, train_counts, sources = collect_test_predictions(
-            model_name, weights_path, config
-        )
+        (
+            class_names,
+            labels,
+            preds,
+            confidences,
+            train_counts,
+            sources,
+            topk_preds,
+        ) = collect_test_predictions(model_name, weights_path, config)
 
     groups = GroupLabels(class_names=class_names, crop_prefixes=crop_prefixes)
 
@@ -433,6 +471,8 @@ def analyze_model(
     summary = {
         "model_name": model_name,
         "test_accuracy": float(accuracy_score(labels, preds)),
+        "top3_accuracy": top_k_accuracy(labels, topk_preds, 3),
+        "top5_accuracy": top_k_accuracy(labels, topk_preds, 5),
         "macro_f1": float(f1_score(labels, preds, average="macro", zero_division=0)),
         "weighted_f1": float(f1_score(labels, preds, average="weighted", zero_division=0)),
         "num_classes": len(class_names),
@@ -463,8 +503,10 @@ def analyze_all_models(
         print(f"\n===== Analyzing {model_name} =====")
         summary = analyze_model(model_name, model_dir, config, crop_prefixes=crop_prefixes)
         summaries.append(summary)
+        top5 = summary.get("top5_accuracy")
+        top5_str = f" top5={top5:.4f}" if top5 is not None else ""
         print(
-            f"  test_acc={summary['test_accuracy']:.4f} "
+            f"  test_acc={summary['test_accuracy']:.4f}{top5_str} "
             f"macro_f1={summary['macro_f1']:.4f} "
             f"weighted_f1={summary['weighted_f1']:.4f}"
         )
@@ -477,6 +519,8 @@ def analyze_all_models(
         row = {
             "model_name": summary["model_name"],
             "test_accuracy": summary["test_accuracy"],
+            "top3_accuracy": summary.get("top3_accuracy"),
+            "top5_accuracy": summary.get("top5_accuracy"),
             "macro_f1": summary["macro_f1"],
             "weighted_f1": summary["weighted_f1"],
         }

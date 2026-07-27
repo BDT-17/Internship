@@ -107,8 +107,10 @@ python scripts/train_kaggle.py \
 
 Splits are 70/15/15 stratified per class, seeded (`--seed 42`), and deterministic — which
 is what lets `analyze_kaggle.py` reconstruct the exact test set later without retraining.
-Early stopping uses patience 7 on validation accuracy. Mixed precision is on by default on
-CUDA (`--no-amp` to disable).
+`best_model.pth` and early stopping (patience 7) both track **validation macro-F1** by
+default — the honest metric under the ~250x class imbalance, where accuracy just follows the
+largest class. Pass `--model-selection-metric val_accuracy` to restore the old behaviour.
+Mixed precision is on by default on CUDA (`--no-amp` to disable).
 
 ### Tier-1 options
 
@@ -162,7 +164,9 @@ python scripts/analyze_kaggle.py \
 
 Produces `per_class_metrics.csv` (precision/recall/F1/support per class),
 `group_analysis.csv` (crop vs tree-genus performance), `most_confused_pairs.csv`,
-`per_class_f1_vs_size.png`, and `analysis_summary.json`.
+`per_class_f1_vs_size.png`, and `analysis_summary.json`. The run-level
+`analysis_comparison.csv` also carries **top-3 / top-5 accuracy** per model
+alongside top-1 accuracy and macro/weighted F1.
 
 On Kaggle the input tree is read-only, so pass an `--output-dir` under `/kaggle/working`;
 the script mirrors the weights across before writing.

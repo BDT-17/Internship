@@ -25,6 +25,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--num-workers", type=int, default=2)
     parser.add_argument("--image-size", type=int, default=224)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument(
+        "--model-selection-metric",
+        choices=["val_f1_macro", "val_accuracy"],
+        default="val_f1_macro",
+        help="Validation metric used to pick best_model.pth (default: macro-F1).",
+    )
     parser.add_argument("--models", nargs="+", default=None)
     parser.add_argument("--no-amp", action="store_true")
     parser.add_argument("--no-pretrained", action="store_true")
@@ -58,6 +64,7 @@ def main() -> None:
         num_workers=args.num_workers,
         epochs=args.epochs,
         seed=args.seed,
+        model_selection_metric=args.model_selection_metric,
         use_amp=not args.no_amp,
         save_every_epoch=not args.no_save_every_epoch,
         use_pretrained_weights=not args.no_pretrained,

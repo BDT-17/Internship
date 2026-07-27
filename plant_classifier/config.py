@@ -32,6 +32,10 @@ class TrainConfig:
     val_ratio: float = 0.15
     test_ratio: float = 0.15
     seed: int = 42
+    # Which validation metric picks best_model.pth. With a ~250x class
+    # imbalance, val accuracy is dominated by the largest class (Tomato), so
+    # macro-F1 is the honest default for this long-tailed task.
+    model_selection_metric: str = "val_f1_macro"  # val_f1_macro | val_accuracy
     use_amp: bool = True
     save_every_epoch: bool = True
     use_pretrained_weights: bool = True
@@ -54,3 +58,8 @@ class TrainConfig:
             raise ValueError(f"Split ratios must sum to 1.0, got {split_sum}.")
         if not self.dataset_dir.exists():
             raise FileNotFoundError(f"Dataset folder not found: {self.dataset_dir}")
+        if self.model_selection_metric not in ("val_f1_macro", "val_accuracy"):
+            raise ValueError(
+                "model_selection_metric must be 'val_f1_macro' or 'val_accuracy', "
+                f"got {self.model_selection_metric!r}."
+            )
