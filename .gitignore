@@ -11,3 +11,11 @@ venv/
 __pycache__/
 plant_training_outputs/
 smoke_test_outputs/
+# LaTeX build artifacts (report_draft.pdf and aux files are generated, not tracked)
+docs/reports/*.pdf
+docs/reports/*.aux
+docs/reports/*.log
+docs/reports/*.out
+docs/reports/*.toc
+docs/reports/*.lof
+docs/reports/*.lot
