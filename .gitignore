@@ -11,6 +11,10 @@ venv/
 __pycache__/
 plant_training_outputs/
 smoke_test_outputs/
+# Downloaded Kaggle result bundles and local weights (regenerated, not tracked)
+analyze/
+notebooks/trained/
+summary.md
 # LaTeX build artifacts (report_draft.pdf and aux files are generated, not tracked)
 docs/reports/*.pdf
 docs/reports/*.aux
