@@ -1,0 +1,30 @@
+{
+  // LaTeX Workshop: this project builds with MiKTeX's pdflatex.
+  // The report has no bibtex/biber step (the bibliography is inline
+  // \bibitem entries), so two pdflatex passes are enough -- the default
+  // latexmk recipe works too but is slower and noisier here.
+  "latex-workshop.latex.tools": [
+    {
+      "name": "pdflatex",
+      "command": "pdflatex",
+      "args": [
+        "-synctex=1",
+        "-interaction=nonstopmode",
+        "-file-line-error",
+        "%DOC%"
+      ]
+    }
+  ],
+  "latex-workshop.latex.recipes": [
+    {
+      "name": "pdflatex x2",
+      "tools": ["pdflatex", "pdflatex"]
+    }
+  ],
+  // Show the PDF in a VS Code tab rather than an external window.
+  "latex-workshop.view.pdf.viewer": "tab",
+  // Auto-build on save is off: the report is long and compiles are slow.
+  // Build with Ctrl+Alt+B, view with Ctrl+Alt+V.
+  "latex-workshop.latex.autoBuild.run": "never",
+  "latex-workshop.latex.outDir": "%DIR%"
+}

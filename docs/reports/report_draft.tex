@@ -1,4 +1,4 @@
-\documentclass[12pt,a4paper]{report}
+\documentclass[12pt,a4paper]{article}
 
 \usepackage[a4paper,margin=1in]{geometry}
 \usepackage{setspace}
@@ -14,74 +14,254 @@
 \usepackage{subcaption}
 \usepackage{enumitem}
 \usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,fit,backgrounds,calc}
 
 \hypersetup{
     colorlinks=true,
     linkcolor=blue,
     filecolor=magenta,
     urlcolor=cyan,
-    pdftitle={Internship Report - Plant Classification},
+    pdftitle={Plant Image Classification Using CNNs: From Scratch versus Pretrained Models},
     pdfauthor={Bui Duc Thang}
 }
 
 \setstretch{1.3}
 
-\title{Internship Report\\[0.5em]\large Plant Classification Using CNNs:\\From Scratch vs Pretrained Models}
+% Top-level sections carry their own roman numeral in the title ("I/ ..."),
+% so suppress LaTeX's own section counter but keep numbered subsections
+% (1.1, 1.2, ...) as in the reference theses.
+\usepackage{titlesec}
+% Section titles already carry their own numeral ("I/ INTRODUCTION"), so the
+% counter must print nothing -- both in the body and in the table of contents.
+\renewcommand{\thesection}{}
+\titleformat{\section}{\Large\bfseries}{}{0pt}{}
+\titlespacing*{\section}{0pt}{2.2em}{1.2em}
+\renewcommand{\thesubsection}{\arabic{subsection}}
+\renewcommand{\thesubsubsection}{\thesubsection.\arabic{subsubsection}}
+% Give the (empty) section label no width in the ToC so entries align.
+\makeatletter
+\renewcommand*\l@section[2]{%
+  \ifnum \c@tocdepth >\z@
+    \addpenalty\@secpenalty
+    \addvspace{1.0em \@plus\p@}%
+    \setlength\@tempdima{0em}%
+    \begingroup
+      \parindent \z@ \rightskip \@pnumwidth
+      \parfillskip -\@pnumwidth
+      \leavevmode \bfseries
+      \advance\leftskip\@tempdima
+      \hskip -\leftskip
+      #1\nobreak\hfil \nobreak\hb@xt@\@pnumwidth{\hss #2}\par
+    \endgroup
+  \fi}
+\makeatother
+
+\title{Plant Image Classification Using CNNs:\\From Scratch versus Pretrained Models}
 \author{Bui Duc Thang}
-\date{\today}
+\date{July 2026}
 
 \begin{document}
 
+% ============================== TITLE PAGE ==============================
 \begin{titlepage}
     \centering
-    {\Large UNIVERSITY OF SCIENCE AND TECHNOLOGY OF HANOI\par}
-    \vspace{2cm}
-    {\Huge \bfseries INTERNSHIP REPORT\par}
-    \vspace{1.2cm}
-    {\LARGE Plant Classification Using CNNs:\\From Scratch vs Pretrained Models\par}
-    \vspace{2cm}
+    {\large UNIVERSITY OF SCIENCE AND TECHNOLOGY OF HANOI\par}
+    \vspace{0.6cm}
+    {\large DEPARTMENT OF INFORMATION AND COMMUNICATION TECHNOLOGY\par}
+    \vspace{1.8cm}
 
-    \begin{tabular}{ll}
-        Student: & Bui Duc Thang \\
-        Student ID: & 23BI14400 \\
-        Supervisor: & Tran Hoang Tung \\
-        Organization: & Internship Project \\
-    \end{tabular}
+    {\LARGE\bfseries BACHELOR THESIS\par}
+    \vspace{1.6cm}
+
+    {\large By\par}
+    \vspace{0.4cm}
+    {\large Bui Duc Thang -- 23BI14400\par}
+    \vspace{1.4cm}
+
+    {\large Title:\par}
+    \vspace{0.5cm}
+    {\LARGE\bfseries Plant Image Classification Using CNNs:\\[0.3em]
+     From Scratch versus Pretrained Models\par}
+    \vspace{2.2cm}
+
+    {\large External Supervisor: Dr.\ Tran Hoang Tung\par}
+    \vspace{0.3cm}
+    {\large Internal Supervisor: \rule{5cm}{0.4pt}\par}
 
     \vfill
-    {\large Hanoi, \today\par}
+    {\large Hanoi, July 2026\par}
 \end{titlepage}
 
+% ======================= SUPERVISOR'S CERTIFICATION =======================
+\clearpage
+\thispagestyle{empty}
+\begin{center}
+    {\large\bfseries SUPERVISOR'S CERTIFICATION\par}
+\end{center}
+\vspace{1.2cm}
+
+To whom it may concern,
+
+\vspace{0.6cm}
+I, Dr.\ Tran Hoang Tung (External Supervisor), certify that the Bachelor Thesis entitled ``Plant Image Classification Using CNNs: From Scratch versus Pretrained Models'', carried out by Mr.\ Bui Duc Thang (Student ID 23BI14400), is qualified to be presented before the Bachelor Thesis Defence Committee of the University of Science and Technology of Hanoi for the academic year 2025--2026.
+
+\vspace{2.5cm}
+\hfill\begin{minipage}{7cm}
+    \centering
+    Hanoi, \rule{2.5cm}{0.4pt} 2026\par
+    \vspace{0.4cm}
+    Supervisor's signature\par
+    \vspace{2cm}
+    Dr.\ Tran Hoang Tung\par
+\end{minipage}
+
+\clearpage
 \pagenumbering{roman}
+\setcounter{page}{2}
+
+% ============================ TABLE OF CONTENTS ============================
+\renewcommand{\contentsname}{TABLE OF CONTENTS}
 \tableofcontents
-\listoffigures
+\clearpage
+
+% ============================ ACKNOWLEDGEMENTS ============================
+\section*{ACKNOWLEDGEMENTS}
+\addcontentsline{toc}{section}{ACKNOWLEDGEMENTS}
+The author wishes to express sincere gratitude to Dr.\ Tran Hoang Tung for his guidance, constructive feedback, and continued support throughout the course of this work. His expertise and insightful comments were invaluable in shaping both the technical direction and the quality of this thesis.
+
+The author also thanks the Department of Information and Communication Technology, Data Science programme, at the University of Science and Technology of Hanoi (USTH) for providing the academic environment and resources that made this research possible.
+
+\clearpage
+
+% ========================= LIST OF ABBREVIATIONS =========================
+\section*{LIST OF ABBREVIATIONS}
+\addcontentsline{toc}{section}{LIST OF ABBREVIATIONS}
+\vspace{0.5cm}
+\begin{tabular}{@{}p{3.2cm}p{10.5cm}@{}}
+    \textbf{Abbreviation} & \textbf{Meaning} \\[0.3em]
+    AdamW    & Adam with Decoupled Weight Decay (optimiser) \\
+    CB       & Class-Balanced (loss weighting) \\
+    CNN      & Convolutional Neural Network \\
+    CutMix   & Cut-and-Mix Regional Augmentation \\
+    F1       & F1-score (harmonic mean of precision and recall) \\
+    FE       & Feature Extraction (frozen backbone transfer) \\
+    FT       & Fine-Tuning (backbone weights updated) \\
+    GPU      & Graphics Processing Unit \\
+    Grad-CAM & Gradient-weighted Class Activation Mapping \\
+    ILSVRC   & ImageNet Large Scale Visual Recognition Challenge \\
+    LR       & Learning Rate \\
+    MixUp    & Convex-Combination Input Augmentation \\
+    OOD      & Out-of-Distribution \\
+    ReLU     & Rectified Linear Unit \\
+    ResNet   & Residual Network \\
+    SE       & Squeeze-and-Excitation (channel attention block) \\
+    Top-$k$  & Top-$k$ Accuracy (true label within the $k$ highest scores) \\
+\end{tabular}
+\clearpage
+
+% ============================ LIST OF TABLES ============================
+\renewcommand{\listtablename}{LIST OF TABLES}
+\addcontentsline{toc}{section}{LIST OF TABLES}
 \listoftables
 \clearpage
 
-\chapter*{Abstract}
-\addcontentsline{toc}{chapter}{Abstract}
-This report presents an internship project on plant image classification using convolutional neural networks (CNNs), comparing models trained from scratch against pretrained backbones under a single reproducible pipeline. The dataset merges PlantVillage crop leaves (grouped at crop level: Pepper, Potato, Tomato) with Leafsnap tree leaves (grouped at genus level), giving 76 classes and 51{,}504 images with a severe class imbalance of roughly 250:1. Because accuracy on such a long-tailed task is dominated by the largest class, model selection and reporting are driven by \emph{macro F1-score}, complemented by top-$k$ accuracy. Beyond the standard scratch-versus-pretrained comparison, the central question of this report is one of \emph{generalization}: do these models learn plant leaf morphology, or do they exploit acquisition artifacts such as background and capture conditions? This is probed directly using the Leafsnap \emph{lab} versus \emph{field} split --- both cover the same genera, so the accuracy gap between them isolates sensitivity to capture conditions --- and supported by Grad-CAM visualizations of where each model attends. The report covers dataset preparation, model design, training strategy, evaluation methodology, and a comparative analysis of performance, efficiency, and cross-condition generalization.
+% ============================ LIST OF FIGURES ============================
+\renewcommand{\listfigurename}{LIST OF FIGURES}
+\addcontentsline{toc}{section}{LIST OF FIGURES}
+\listoffigures
+\clearpage
 
-\chapter*{Acknowledgments}
-\addcontentsline{toc}{chapter}{Acknowledgments}
-% TODO: Write acknowledgments.
+% ================================ ABSTRACT ================================
+\section*{ABSTRACT}
+\addcontentsline{toc}{section}{ABSTRACT}
+This thesis presents a study of plant image classification using convolutional neural networks (CNNs), comparing models trained from scratch against pretrained backbones under a single reproducible pipeline. The dataset merges PlantVillage crop leaves (grouped at crop level: Pepper, Potato, Tomato) with Leafsnap tree leaves (grouped at genus level), giving 76 classes and 51{,}504 images with a severe class imbalance of roughly 250:1. Because accuracy on such a long-tailed task is dominated by the largest class, model selection and reporting are driven by \emph{macro F1-score}, complemented by top-$k$ accuracy.
+
+Beyond the standard scratch-versus-pretrained comparison, the central question of this thesis is one of \emph{generalization}: do these models learn plant leaf morphology, or do they exploit acquisition artifacts such as background and capture conditions? This is probed directly using the Leafsnap \emph{lab} versus \emph{field} split --- both domains cover the same genera, so the accuracy gap between them isolates sensitivity to capture conditions from the label space itself.
+
+Four models are trained and evaluated on an identical deterministic split. Fine-tuned ResNet50 performs best (0.9849 top-1, 0.9747 macro F1), but two results qualify that headline. Frozen ImageNet features (0.8737 macro F1) perform no better than a CNN trained entirely from scratch (0.8730), indicating that the advantage of transfer learning here comes from \emph{adapting} the representation rather than from pretraining as such; and a scratch model with a modern training recipe reaches 0.9637 macro F1 without any pretrained weights. Every model loses accuracy moving from lab to field imagery --- by 17.5, 7.1, 6.7 and 4.0 percentage points respectively --- so condition sensitivity is a property of the task rather than of any one architecture, though it is compressible as representations improve. Because classification errors rarely cross between the two source datasets, headline 76-class accuracy partly measures source separation rather than plant recognition, and the source-conditioned results are the figures that should be quoted when the question is how well a model recognizes plants.
 
 \clearpage
 \pagenumbering{arabic}
 
-\chapter{Introduction}
-\section{Background}
-Plant image classification is an important computer vision task with applications in agriculture, biodiversity monitoring, and intelligent advisory systems. Deep learning models, especially convolutional neural networks, have demonstrated strong performance in visual recognition problems.
+\section{I/ INTRODUCTION}
+\label{sec:intro}
+\subsection{Background}
+Plant image classification assigns a photograph of a plant --- most often a leaf --- to a botanical or agricultural category. The task underpins several practical systems: crop advisory tools that flag disease from a farmer's phone camera, biodiversity surveys that would otherwise require expert botanists, and citizen-science applications where non-specialists identify what they encounter outdoors.
 
-\section{Problem Statement}
-This internship investigates how different CNN training strategies perform on plant classification. The main comparison is between:
+Convolutional neural networks have largely displaced hand-engineered descriptors for this problem, and the reported numbers are striking. On curated leaf benchmarks, accuracies close to 100\% are now routine, and crop-disease classifiers trained on controlled imagery report figures above 99\%. Taken at face value, these results suggest the problem is essentially solved.
+
+The difficulty is that such numbers are obtained under a specific and generous condition: the test images resemble the training images. A leaf photographed in the field --- against soil and surrounding vegetation, under uneven sunlight, partly occluded, at an oblique angle --- is a substantially harder input than a detached leaf on a uniform sheet, even when the plant is identical. Whether reported accuracy survives that change of conditions is precisely what a benchmark drawn from a single acquisition source cannot reveal.
+
+\subsection{Problem Statement}
+This thesis investigates how different CNN training strategies perform on plant classification, and --- more importantly --- what they actually learn in the process. The main comparison is between:
 \begin{itemize}
     \item a custom CNN trained from scratch,
-    \item ResNet50 with feature extraction,
-    \item ResNet50 with fine-tuning.
+    \item ResNet50 with feature extraction (frozen backbone),
+    \item ResNet50 with fine-tuning,
+    \item a modernised from-scratch CNN with residual and attention blocks.
 \end{itemize}
 
-\section{Objectives}
+The scratch-versus-pretrained comparison is well established and its qualitative outcome is largely expected, so on its own it would not be a useful contribution. The problem this thesis addresses is the one underneath it. Merging a uniformly captured source (PlantVillage) with a mixed lab/field source (Leafsnap) produces a label space in which acquisition conditions are partly confounded with the classes: a model can score highly by telling the two \emph{sources} apart rather than by recognising plants. Used deliberately, however, the same dataset supplies its own control. Leafsnap's lab and field domains cover the \emph{same} genera, so the accuracy difference between them measures reliance on capture conditions with the label space held fixed. The central problem is therefore to determine whether a high headline accuracy on this task reflects morphological understanding or acquisition artifacts, and to quantify how far each training strategy closes that gap.
+
+\subsection{Scope}
+This project studies \emph{leaf-based} plant image classification; the two source datasets are both leaf-image collections, so flowers and fruits are outside the scope. The label space is a 76-class merged dataset:
+\begin{itemize}
+    \item PlantVillage images grouped at \emph{crop} level: Pepper, Potato, Tomato,
+    \item Leafsnap images grouped at \emph{genus} level (73 tree genera).
+\end{itemize}
+The labels therefore mix two taxonomic levels (crop and genus) rather than true botanical species; the term ``class'' is used throughout to avoid overstating this as species-level identification. Merging the two sources deliberately couples a controlled-capture collection (PlantVillage, uniform $256 \times 256$ leaf-on-background images) with a partly in-the-wild one (Leafsnap, higher-resolution lab and field images). This coupling is itself a subject of study rather than an incidental design choice: it lets the report ask whether a high headline accuracy reflects plant recognition or merely the separability of the two acquisition sources (Section~\ref{sec:domainshift}).
+
+\subsection{Related Work}
+This section reviews the three literatures the thesis draws on: plant image classification and its benchmark datasets, transfer learning as the standard remedy for limited data, and the body of work on shortcut learning that motivates asking what a high-accuracy plant classifier has actually learned.
+
+\subsubsection{Plant Classification}
+Plant image classification assigns plant images to predefined categories such as crop type, tree genus, species, or cultivar, with applications in agriculture, biodiversity monitoring, and advisory systems. Leaves are the organ of choice for most such systems: they are present for most of the growing season, roughly planar, and can be photographed against a background, whereas flowers and fruits are seasonal and three-dimensional.
+
+\paragraph{From hand-crafted shape features to CNNs.} Early systems described a leaf by its \emph{contour}. Leafsnap~\cite{kumar2012} is the canonical example: it segments the leaf from an untextured background and computes histograms of curvature over multiple scales (HoCS), reaching a top-1 rate of about 73\% and top-5 of 96.8\% over 184 tree species. LeafNet~\cite{barre2017} showed that a learned CNN representation outperforms such engineered descriptors on the same task. The shift matters for this thesis because contour-based methods depend on a clean segmentation, which is exactly what field imagery denies --- Barr\'e et al.\ report Leafsnap Field as the one benchmark in their comparison falling well below 90\% first-prediction accuracy, at 64.9\%, attributing the gap to blur and shadows that corrupt segmentation.
+
+\paragraph{Benchmark saturation.} On curated leaf datasets, CNNs now report accuracies that leave little headroom: near-100\% on Flavia, Swedish, and Folio, and in the high nineties on ICL and Foliage. Leafsnap consistently sits several points lower --- reported figures cluster around 89--95\% depending on the split and the amount of the field domain included. This pattern is itself informative: the datasets on which methods saturate are the ones with controlled capture, and the dataset that resists saturation is the one containing in-the-wild photographs. PlantCLEF~\cite{goeau2017} was constructed at large scale partly in response, evaluating on observations submitted by users of a mobile application rather than on curated specimens.
+
+\paragraph{Crop disease as a parallel line.} PlantVillage~\cite{hughes2015} supports a related task --- identifying crop and disease from a leaf photograph. Mohanty et al.~\cite{mohanty2016} reported 99.35\% on a held-out split of it using AlexNet and GoogLeNet, a result frequently cited as evidence that leaf-based diagnosis is solved. Section~\ref{sec:shortcut} returns to what happened when the same model met images captured under different conditions.
+
+\paragraph{Positioning of this thesis.} Two features distinguish the present work from the studies above. First, it deliberately \emph{merges} a controlled-capture source (PlantVillage, grouped to crop level: Pepper, Potato, Tomato) with a mixed lab/field source (Leafsnap, grouped to genus level), producing a 76-class problem that spans both regimes rather than staying within one. Second, and consequently, it does not treat headline accuracy on that merged task as the result of interest. Because Leafsnap's lab and field domains cover the same genera, the accuracy difference between them provides a within-dataset measurement of cross-condition generalization --- a probe unavailable in any single-source benchmark, and the central instrument of this thesis.
+
+\subsubsection{Transfer Learning in Computer Vision}
+Deep CNNs learn hierarchical representations: low-level layers capture edges, textures, and color gradients; mid-level layers capture shapes and object parts; high-level layers capture task-specific semantics~\cite{yosinski2014}. Pretrained models can reuse the general features (leaf edges, venation-like textures, shape, color) that plant recognition depends on. Two transfer strategies are compared here. In \emph{feature extraction}, the pretrained backbone is frozen and only the classifier head is trained: convergence is fast but domain adaptation is limited. In \emph{fine-tuning}, deeper layers and the head are updated, allowing the representation to adapt to plant imagery at the cost of more careful learning-rate control and regularization. Because ImageNet features transfer well to natural-image tasks, pretrained models typically converge faster and generalize better than a CNN trained from scratch on a limited dataset.
+
+\subsubsection{Generalization and Shortcut Learning}
+\label{sec:shortcut}
+The concern that motivates this report is not specific to plants. Geirhos et al.~\cite{geirhos2020} name the general phenomenon \emph{shortcut learning}: networks adopt ``decision rules that perform well on standard benchmarks but fail to transfer to more challenging testing conditions.'' A model is free to use any signal that correlates with the label in training, and if background, lighting, or resolution correlate with the label more reliably than the object itself, the model will use them. The same group showed earlier that ImageNet-trained CNNs are biased towards texture rather than shape~\cite{geirhos2019}, a concrete instance of the same failure. Beery et al.~\cite{beery2018} demonstrated the effect in ecology: camera-trap classifiers that perform well at their training locations degrade sharply at new locations, because the fixed backgrounds of each site are learnable proxies for the species that frequent it.
+
+Figure~\ref{fig:taxonomy} makes the distinction precise. Among all decision rules, only some fit the training data; among those, only some also generalize to an i.i.d. test set; and among \emph{those}, shortcuts are the ones that fail once the test distribution shifts. A model evaluated only on an i.i.d. split cannot distinguish a shortcut from the intended solution, because both score identically there.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figures/fig_shortcut_taxonomy.png}
+    \caption{Taxonomy of decision rules, reproduced from Geirhos et al.~\cite{geirhos2020}. Shortcut solutions (blue) are indistinguishable from intended solutions (red) on an i.i.d.\ test set and separate only under out-of-distribution testing --- the motivation for the lab-versus-field evaluation used in this thesis.}
+    \label{fig:taxonomy}
+\end{figure}
+
+Beery et al.~\cite{beery2018} give a vivid instance. A classifier that recognises cows reliably in alpine pasture --- the context in which cows appear throughout its training data --- fails on the same animal photographed on a beach (Figure~\ref{fig:cows}). The object is unchanged; only the context differs.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/fig_beery_cows.png}
+    \caption{Context dependence in recognition, reproduced from Beery et al.~\cite{beery2018}. A cow in a typical pasture setting (A) is classified correctly; the same animal in unusual contexts (B, C) is missed or mislabelled.}
+    \label{fig:cows}
+\end{figure}
+
+Plant pathology supplies the closest and most cautionary precedent. Mohanty et al.~\cite{mohanty2016} trained AlexNet and GoogLeNet on 54{,}306 PlantVillage images across 38 crop--disease categories and reported \textbf{99.35\%} accuracy on a held-out test set---a result widely cited as evidence that the problem is solved. The same paper reports that on images collected under different conditions, accuracy fell to roughly \textbf{31\%}. The authors attribute this to the dataset's constraints: single leaves, facing up, on a homogeneous background. Subsequent work has confirmed and sharpened the diagnosis. Ahmad et al.~\cite{ahmad2023} found generalization dropping to 33.27\% on field-acquired images from contrasting conditions, and reported that a model given only \emph{eight background pixels} from PlantVillage images still reached 49.0\% accuracy against a 2.6\% random baseline---direct evidence that the background alone carries most of the label information.
+
+Leafsnap exhibits the same asymmetry internally, which is what makes it useful here. Its lab images are controlled backlit and front-lit captures, while its field images are mobile-phone photographs containing blur, shadow, occlusion, and cluttered vegetation. Systems evaluated across both report markedly worse performance on the field split---Barr\'e et al.~\cite{barre2017} note that Leafsnap Field is the one benchmark in their comparison to fall well below 90\% first-prediction accuracy, at 64.9\%. Large-scale in-the-wild benchmarks such as PlantCLEF~\cite{goeau2017} were constructed partly in response to this gap between curated and realistic imagery.
+
+Two mitigations recur in this literature and both are tested in this report. The first is transfer learning, on the argument that representations learned from millions of diverse natural images depend less on any single dataset's acquisition quirks~\cite{yosinski2014}. The second is aggressive data augmentation, which perturbs exactly the nuisance factors---lighting, framing, occlusion---that distinguish controlled from field capture, and which has been shown to improve robustness under distribution shift~\cite{hendrycks2020,zhang2018,yun2019}. Whether either substitutes for the other is an open question that Section~\ref{sec:discussion} addresses empirically.
+
+\subsubsection{Research Gap and Motivation}
+The scratch-versus-pretrained comparison is well established, and its qualitative outcome---pretrained wins on limited data---is largely expected. The contribution of this report is therefore not to re-confirm that outcome but to interrogate \emph{what} is being learned. Merging a uniformly captured source (PlantVillage) with a mixed lab/field source (Leafsnap) creates a dataset in which acquisition conditions (resolution, background, lighting) are partly confounded with the labels. A model can score highly by separating the two sources rather than by recognizing plants, which would inflate headline accuracy without demonstrating morphological understanding. The same property, used deliberately, becomes a probe: the Leafsnap lab and field domains cover the \emph{same} genera, so the lab-to-field accuracy gap measures a model's reliance on capture conditions independently of the source-separation confound. This motivates the generalization-centred framing of the experiments and the use of macro F1 rather than accuracy as the primary metric under the observed $\sim$250:1 imbalance.
+
+\section{II/ OBJECTIVES}
+\label{sec:objectives}
 The objectives of this project are:
 \begin{itemize}
     \item to build a reproducible, deterministic training pipeline for plant classification,
@@ -90,33 +270,44 @@ The objectives of this project are:
     \item to assess \emph{generalization across acquisition conditions} (lab versus field) and to characterize what visual cues the models rely on.
 \end{itemize}
 
-\section{Scope}
-This project studies \emph{leaf-based} plant image classification; the two source datasets are both leaf-image collections, so flowers and fruits are outside the scope. The label space is a 76-class merged dataset:
-\begin{itemize}
-    \item PlantVillage images grouped at \emph{crop} level: Pepper, Potato, Tomato,
-    \item Leafsnap images grouped at \emph{genus} level (73 tree genera).
-\end{itemize}
-The labels therefore mix two taxonomic levels (crop and genus) rather than true botanical species; the term ``class'' is used throughout to avoid overstating this as species-level identification. Merging the two sources deliberately couples a controlled-capture collection (PlantVillage, uniform $256 \times 256$ leaf-on-background images) with a partly in-the-wild one (Leafsnap, higher-resolution lab and field images). This coupling is itself a subject of study rather than an incidental design choice: it lets the report ask whether a high headline accuracy reflects plant recognition or merely the separability of the two acquisition sources (Section~\ref{sec:domainshift}).
+\noindent These objectives translate into four research questions, answered in Section~\ref{sec:results}:
+\begin{description}[leftmargin=2.2cm,style=nextline]
+    \item[\textbf{RQ1}] Does pretraining outperform training from scratch on this 76-class task, and by how much under macro F1?
+    \item[\textbf{RQ2}] Is any advantage due to the pretrained \emph{representation} itself, or to \emph{adapting} it to leaf imagery?
+    \item[\textbf{RQ3}] How much accuracy does each model lose when capture conditions change from lab to field, with the label space held fixed?
+    \item[\textbf{RQ4}] Does headline 76-class accuracy measure plant recognition, or partly the separability of the two acquisition sources?
+\end{description}
 
-\chapter{Literature Review}
-\section{Plant Classification}
-Plant image classification assigns plant images to predefined categories such as crop type, tree genus, species, or cultivar, with applications in agriculture, biodiversity monitoring, and advisory systems. Two datasets are central to this project. PlantVillage~\cite{hughes2015} is a large collection of crop leaf images captured under controlled conditions with relatively clean backgrounds; its original labels encode crop-and-disease pairs, which this project collapses to crop level (Pepper, Potato, Tomato). Leafsnap~\cite{kumar2012} is a tree-leaf dataset of roughly 185 species split into a \emph{lab} domain (controlled background) and a \emph{field} domain (natural outdoor capture with variation in lighting, occlusion, background, and viewpoint); this project groups it by genus. The final task is therefore a 76-class crop/genus classification problem that spans both controlled and in-the-wild imagery.
+\section{III/ MATERIALS AND METHODS}
+\label{sec:methods}
+This section describes the data and the experimental apparatus: how the two source datasets were merged into a single 76-class label space, how the deterministic split was constructed, the four model configurations compared, and the training and evaluation protocol. The design priority throughout is that every reported number be reconstructible from the saved weights and the split seed alone.
 
-\section{Transfer Learning in Computer Vision}
-Deep CNNs learn hierarchical representations: low-level layers capture edges, textures, and color gradients; mid-level layers capture shapes and object parts; high-level layers capture task-specific semantics~\cite{yosinski2014}. Pretrained models can reuse the general features (leaf edges, venation-like textures, shape, color) that plant recognition depends on. Two transfer strategies are compared here. In \emph{feature extraction}, the pretrained backbone is frozen and only the classifier head is trained: convergence is fast but domain adaptation is limited. In \emph{fine-tuning}, deeper layers and the head are updated, allowing the representation to adapt to plant imagery at the cost of more careful learning-rate control and regularization. Because ImageNet features transfer well to natural-image tasks, pretrained models typically converge faster and generalize better than a CNN trained from scratch on a limited dataset.
+\subsection{Dataset Preparation}
+The dataset used here is not an off-the-shelf benchmark but a merger of two public collections with different label granularities and, crucially, different acquisition conditions. This subsection describes both sources and the pipeline that combines them.
 
-\section{Research Gap and Motivation}
-The scratch-versus-pretrained comparison is well established, and its qualitative outcome---pretrained wins on limited data---is largely expected. The contribution of this report is therefore not to re-confirm that outcome but to interrogate \emph{what} is being learned. Merging a uniformly captured source (PlantVillage) with a mixed lab/field source (Leafsnap) creates a dataset in which acquisition conditions (resolution, background, lighting) are partly confounded with the labels. A model can score highly by separating the two sources rather than by recognizing plants, which would inflate headline accuracy without demonstrating morphological understanding. The same property, used deliberately, becomes a probe: the Leafsnap lab and field domains cover the \emph{same} genera, so the lab-to-field accuracy gap measures a model's reliance on capture conditions independently of the source-separation confound. This motivates the generalization-centred framing of the experiments and the use of macro F1 rather than accuracy as the primary metric under the observed $\sim$250:1 imbalance.
+\subsubsection{PlantVillage}
+The local PlantVillage subset used in this project contains 15 folders and 20{,}639 images, limited to Pepper, Potato, and Tomato categories. PlantVillage images are captured under tightly controlled conditions: a single detached leaf, oriented face-up, photographed against a uniform grey or black background at a fixed $256 \times 256$ resolution. Figure~\ref{fig:plantvillage} shows one example per crop--disease pair from the original release and makes the uniformity immediately visible.
 
-\chapter{Dataset Preparation}
-\section{Source Datasets}
-\subsection{PlantVillage}
-The local PlantVillage subset used in this project contains 15 folders and 20{,}639 images, limited to Pepper, Potato, and Tomato categories.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.78\textwidth]{figures/fig_plantvillage.png}
+    \caption{Example leaf images from the PlantVillage dataset, one per crop--disease pair, reproduced from Mohanty et al.~\cite{mohanty2016}. Note the uniform background and consistent framing across every class --- the property that makes this source trivially separable from Leafsnap imagery.}
+    \label{fig:plantvillage}
+\end{figure}
 
-\subsection{Leafsnap}
-Leafsnap contributes both lab and field images. The dataset contains 185 species in the lab split and 184 species in the field split.
+\subsubsection{Leafsnap}
+Leafsnap contributes both lab and field images. The dataset contains 185 species in the lab split and 184 species in the field split. The two splits differ sharply in capture quality. \emph{Lab} images are high-resolution pressed-specimen photographs taken against a plain sheet under controlled lighting; \emph{field} images are mobile-phone photographs taken outdoors, containing blur, shadow, specular highlights, occlusion, and cluttered natural backgrounds. Figure~\ref{fig:leafsnap} shows lab specimens together with their segmentations, including the failure cases the original authors attribute to shadows and specularities.
 
-\section{Cleaning and Restructuring Pipeline}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.92\textwidth]{figures/fig_leafsnap.png}
+    \caption{Leafsnap lab images (leftmost column of each block) and their segmentation stages, reproduced from Kumar et al.~\cite{kumar2012}. Even under lab conditions, shadows and specular highlights corrupt segmentation; field images compound these effects with natural backgrounds.}
+    \label{fig:leafsnap}
+\end{figure}
+
+This lab/field division is the reason Leafsnap is central to the present study. Because both splits cover the \emph{same} genera, the accuracy difference between them isolates the effect of capture conditions from the effect of the label space --- the measurement developed in Section~\ref{sec:domainshift}.
+
+\subsection{Cleaning and Restructuring Pipeline}
 The dataset preparation process consists of:
 \begin{enumerate}
     \item extracting and cleaning raw filenames,
@@ -125,7 +316,7 @@ The dataset preparation process consists of:
     \item removing metadata files and keeping image files only.
 \end{enumerate}
 
-\section{Final Dataset}
+\subsection{Final Dataset}
 The final dataset used for training is \texttt{dataset\_plant\_classification}:
 \begin{itemize}
     \item 76 classes,
@@ -133,25 +324,83 @@ The final dataset used for training is \texttt{dataset\_plant\_classification}:
     \item image-only contents (\texttt{.jpg}, \texttt{.jpeg}, \texttt{.png}).
 \end{itemize}
 
-\section{Class Distribution}
-% TODO: Insert a table or chart of top classes.
+\subsection{Class Distribution}
+The merged label space is severely long-tailed, and the shape of that tail governs several later design decisions. Figure~\ref{fig:classdist} shows the full ranked distribution on a logarithmic axis.
 
-\chapter{Methodology}
-\section{Experimental Pipeline}
-The training workflow includes:
-\begin{itemize}
-    \item dataset loading,
-    \item stratified train/validation/test split,
-    \item image preprocessing and augmentation,
-    \item model training,
-    \item evaluation on the test set,
-    \item saving checkpoints and final artifacts.
-\end{itemize}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figures/fig_class_distribution.png}
+    \caption{Class distribution of the merged dataset (76 classes, 51{,}504 images). Left: all classes ranked by frequency, log scale; the three PlantVillage crops (red) include the single dominant class. Right: the ten largest classes. Tomato alone holds 31.1\% of the data, while the smallest genus (Toona) has 64 images.}
+    \label{fig:classdist}
+\end{figure}
 
-\section{Data Split}
+Three properties matter for the rest of this thesis. First, the imbalance ratio is roughly \textbf{250:1} --- Tomato has 16{,}011 images (31.1\% of the dataset) against 64 for Toona --- so a classifier that simply predicts Tomato scores about 31\% accuracy while recognising nothing. Second, the tail is not a handful of rare classes but the \emph{majority} of the label space: \textbf{45 of 76 classes} fall below 300 images and the median class holds only 240. Third, the imbalance is correlated with the source: the three PlantVillage crops account for 40.1\% of all images while contributing 3 of 76 classes, whereas the 73 Leafsnap genera share the remaining 59.9\%.
+
+Table~\ref{tab:classdist} lists the extremes.
+
+\begin{table}[H]
+    \centering
+    \caption{Largest and smallest classes in the merged dataset.}
+    \label{tab:classdist}
+    \begin{tabular}{llr@{\hskip 2.2em}llr}
+        \toprule
+        \multicolumn{3}{c}{Five largest} & \multicolumn{3}{c}{Five smallest} \\
+        \cmidrule(r){1-3}\cmidrule(l){4-6}
+        Class & Source & Images & Class & Source & Images \\
+        \midrule
+        Tomato  & PlantVillage & 16{,}011 & Toona     & Leafsnap & 64 \\
+        Quercus & Leafsnap     & 3{,}267  & Corylus   & Leafsnap & 84 \\
+        Pinus   & Leafsnap     & 2{,}906  & Syringa   & Leafsnap & 98 \\
+        Pepper  & PlantVillage & 2{,}475  & Juniperus & Leafsnap & 113 \\
+        Potato  & PlantVillage & 2{,}152  & Evodia    & Leafsnap & 115 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+These three properties are the reason macro F1 rather than accuracy is the primary metric (Section~\ref{sec:methods}), the reason class-balanced and focal losses are provided as training options, and --- as the per-class results in Section~\ref{sec:results} confirm --- the reason the weakest classes are consistently low-support tree genera rather than crops.
+
+\subsection{Experimental Methodology}
+\subsubsection{Experimental Pipeline}
+Figure~\ref{fig:pipeline} shows the end-to-end workflow. The deterministic split (seed 42) is the component that makes the post-hoc analysis possible: because the test partition can be reconstructed exactly, every trained checkpoint can be re-evaluated later without retraining, and all models are compared on identical held-out images.
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[
+        node distance=6mm,
+        box/.style={draw, rounded corners=2pt, align=center, font=\small,
+                    minimum height=8mm, inner xsep=3pt},
+        src/.style={box, fill=blue!8},
+        proc/.style={box, fill=gray!10},
+        outbox/.style={box, fill=green!10},
+        arr/.style={-{Stealth[length=2mm]}, thick}
+    ]
+        \node[src] (pv) {PlantVillage\\\scriptsize 3 crops};
+        \node[src, below=of pv] (ls) {Leafsnap\\\scriptsize 73 genera, lab + field};
+        \node[proc, right=10mm of $(pv)!0.5!(ls)$] (merge) {Merge \& clean\\\scriptsize 76 classes, 51{,}504 img};
+        \node[proc, right=of merge] (split) {Stratified split\\\scriptsize seed 42 $\rightarrow$ 70/15/15};
+        \node[proc, right=of split] (aug) {Preprocess\\\scriptsize $224^2$ + augment};
+        \node[proc, below=10mm of aug] (train) {Train\\\scriptsize 4 models};
+        \node[proc, left=of train] (sel) {Select best\\\scriptsize by val.\ macro F1};
+        \node[outbox, left=of sel] (eval) {Evaluate on\\\scriptsize reconstructed test set};
+        \node[outbox, left=of eval] (analysis) {Analysis\\\scriptsize per-class / group / \textbf{source}};
+
+        \draw[arr] (pv) -- (merge);
+        \draw[arr] (ls) -- (merge);
+        \draw[arr] (merge) -- (split);
+        \draw[arr] (split) -- (aug);
+        \draw[arr] (aug) -- (train);
+        \draw[arr] (train) -- (sel);
+        \draw[arr] (sel) -- (eval);
+        \draw[arr] (eval) -- (analysis);
+    \end{tikzpicture}
+    \caption{Experimental pipeline. The deterministic split lets any saved checkpoint be re-evaluated on the exact held-out test set, which is what enables the source-conditioned analysis (Figure~\ref{fig:domainshift}) without retraining.}
+    \label{fig:pipeline}
+\end{figure}
+
+\subsection{Data Split}
 The dataset is split per class (stratified) into 70\% training, 15\% validation, and 15\% test. The split is \emph{deterministic}: it is driven by a fixed random seed (42) and identical ratios across all models, so every model sees the same train/validation/test partition, and the exact held-out test set can be reconstructed later for post-hoc analysis without retraining. All models are trained and evaluated under this single shared split to keep the comparison fair.
 
-\section{Image Preprocessing}
+\subsection{Image Preprocessing}
 The current training pipeline applies:
 \begin{itemize}
     \item resize to $224 \times 224$,
@@ -161,7 +410,7 @@ The current training pipeline applies:
     \item ImageNet normalization.
 \end{itemize}
 
-\section{Evaluation Metrics}
+\subsection{Evaluation Metrics}
 The models are evaluated on the held-out test set using:
 \begin{itemize}
     \item accuracy (top-1),
@@ -173,16 +422,72 @@ The models are evaluated on the held-out test set using:
 \end{itemize}
 Under the observed $\sim$250:1 class imbalance, top-1 accuracy is dominated by the largest class (Tomato, $\approx$31\% of images), so \emph{macro F1-score} is treated as the primary metric. Accordingly, the best checkpoint of each model is selected by \emph{validation macro F1} (not validation accuracy), and early stopping monitors the same quantity. This ensures that ``best model'' reflects balanced performance across the long tail rather than performance on the majority class alone.
 
-\section{Domain-Shift and Interpretability Analysis}
+\subsection{Domain-Shift and Interpretability Analysis}
 \label{sec:domainshift}
 To answer the generalization question, two additional analyses are applied to each trained model on the held-out test set.
 
 \paragraph{Source-conditioned evaluation.} Every test image is labelled by acquisition source---\texttt{plantvillage\_crop}, \texttt{leafsnap\_lab}, or \texttt{leafsnap\_field}---recovered from filename provenance, and accuracy and macro F1 are reported per source. The headline comparison is \texttt{leafsnap\_lab} versus \texttt{leafsnap\_field}: because both cover the \emph{same} tree genera, a large lab-to-field accuracy drop indicates that the model relies on lab capture conditions (clean background, controlled lighting) rather than on leaf morphology. This isolates cross-condition generalization from the crop-versus-genus source-separation confound.
 
-\paragraph{Grad-CAM visualization.} Gradient-weighted class activation mapping~\cite{selvaraju2017} is used to visualize which image regions drive each prediction. Contrasting lab images that are classified correctly with field images of the same genus that are misclassified shows whether attention concentrates on the leaf or on the background, providing qualitative evidence for the quantitative lab-to-field gap.
+Figure~\ref{fig:domainshift} makes the logic explicit. The horizontal comparison (PlantVillage versus Leafsnap) is contaminated: the two sources differ in both \emph{label space} and \emph{capture conditions}, so a model can separate them without recognizing any plant, exactly the shortcut Ahmad et al.~\cite{ahmad2023} exposed with eight background pixels. The vertical comparison within Leafsnap is clean: the genera are identical on both sides, so capture condition is the only variable, and any accuracy drop is attributable to it alone.
 
-\chapter{Model Design}
-\section{Custom CNN Baseline}
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[
+        cell/.style={draw, rounded corners=2pt, align=center, font=\small,
+                     minimum width=34mm, minimum height=13mm},
+        lab/.style={cell, fill=blue!8},
+        field/.style={cell, fill=orange!12},
+        crop/.style={cell, fill=gray!12},
+        lbl/.style={font=\scriptsize\itshape, align=center}
+    ]
+        \node[crop]  (pv)    at (0,0)      {PlantVillage\\\scriptsize 3 crops, lab};
+        \node[lab]   (lslab) at (7.4,0)    {Leafsnap \textbf{lab}\\\scriptsize 73 genera};
+        \node[field] (lsfld) at (7.4,-3.0) {Leafsnap \textbf{field}\\\scriptsize 73 genera};
+
+        % contaminated horizontal comparison
+        \draw[{Stealth[length=2mm]}-{Stealth[length=2mm]}, thick, red!60!black, dashed]
+            (pv) -- (lslab);
+        \node[lbl, text=red!60!black, above=3mm] at ($(pv)!0.5!(lslab)$)
+            {confounded:\\labels \emph{and} conditions differ};
+
+        % clean vertical comparison
+        \draw[{Stealth[length=2mm]}-{Stealth[length=2mm]}, very thick, green!45!black]
+            (lslab) -- (lsfld);
+        \node[lbl, text=green!45!black, right=2mm, align=left] at ($(lslab)!0.5!(lsfld)$)
+            {clean probe:\\same genera,\\only conditions differ};
+
+        \node[lbl, below=3mm of pv, text width=38mm]
+            {separable from background alone};
+    \end{tikzpicture}
+    \caption{Why the lab-to-field gap is the valid measurement. Comparing across datasets (dashed, red) confounds label space with capture conditions. Comparing Leafsnap lab against Leafsnap field (solid, green) holds the genera fixed and varies only capture conditions, isolating cross-condition generalization.}
+    \label{fig:domainshift}
+\end{figure}
+
+\paragraph{Grad-CAM visualization.} Gradient-weighted class activation mapping~\cite{selvaraju2017} is used to visualize which image regions drive each prediction. Grad-CAM weights each feature map $A^k$ of the last convolutional layer by the average gradient of the class score $y^c$ flowing into it,
+\begin{equation}
+    \alpha_k^c = \frac{1}{Z}\sum_{i}\sum_{j} \frac{\partial y^c}{\partial A_{ij}^k},
+    \label{eq:gradcam_weights}
+\end{equation}
+and combines them into a class-discriminative heatmap,
+\begin{equation}
+    L^c_{\text{Grad-CAM}} = \mathrm{ReLU}\!\left(\sum_k \alpha_k^c A^k\right).
+    \label{eq:gradcam}
+\end{equation}
+The ReLU keeps only regions with a positive influence on the class. The method is class-discriminative: given one image containing two objects, it localises each class separately (Figure~\ref{fig:gradcam}).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figures/fig_gradcam.png}
+    \caption{Grad-CAM localisation, reproduced from Selvaraju et al.~\cite{selvaraju2017}. From the same input image, the method highlights the cat (top, c) or the dog (bottom, i) depending on the target class, showing that the heatmaps reflect class evidence rather than generic saliency.}
+    \label{fig:gradcam}
+\end{figure}
+
+Contrasting lab images that are classified correctly with field images of the same genus that are misclassified shows whether attention concentrates on the leaf or on the background, providing qualitative evidence for the quantitative lab-to-field gap.
+
+\subsection{Model Design}
+Four configurations are compared, chosen so that consecutive pairs differ in exactly one factor. Custom CNN is the from-scratch baseline. Custom CNN v2 keeps the from-scratch setting but modernises architecture and training recipe, isolating the effect of methodology. ResNet50 FE and ResNet50 FT share one pretrained backbone and differ only in whether its deepest stage is allowed to adapt, isolating the effect of adaptation from that of pretraining. All four take $224 \times 224$ RGB input, predict 76 classes, and are trained and evaluated on the identical split.
+
+\subsubsection{Custom CNN Baseline}
 The custom CNN is used as the from-scratch baseline. It is intentionally simpler than ResNet50 so that the experiment can measure the difference between learning visual features from the project dataset alone and reusing pretrained ImageNet features. The network receives RGB images resized to $224 \times 224$ and predicts one of 76 plant classes.
 
 \begin{table}[H]
@@ -221,23 +526,59 @@ The four convolutional blocks progressively increase channel depth from 64 to 51
 
 This architecture has approximately 1.70 million trainable parameters, which makes it much smaller than ResNet50. Therefore, it is a suitable baseline for testing whether a lightweight project-specific CNN can approach the performance of larger pretrained models.
 
-\section{Improved Custom CNN (Custom CNN v2)}
-To test whether a stronger from-scratch design narrows the gap to pretrained models, a second custom network (Custom CNN v2) augments the plain baseline with residual connections~\cite{he2016} and Squeeze-and-Excitation channel attention~\cite{hu2018}, at roughly the scale of an SE-ResNet-18. Residual connections ease optimization of the deeper stack, while SE blocks let the network reweight channels adaptively. This model still trains entirely from scratch and shares the same input size, split, and training configuration as the baseline, isolating the effect of architecture from that of pretraining.
+\subsubsection{Improved Custom CNN (Custom CNN v2)}
+To test whether a stronger from-scratch design narrows the gap to pretrained models, a second custom network (Custom CNN v2) augments the plain baseline with residual connections~\cite{he2016} and Squeeze-and-Excitation channel attention~\cite{hu2018}, at roughly the scale of an SE-ResNet-18. This model still trains entirely from scratch and shares the same input size, split, and training configuration as the baseline, isolating the effect of architecture from that of pretraining.
 
-\section{ResNet50 Feature Extraction}
+\paragraph{Residual connections.} Rather than asking a stack of layers to fit a desired mapping $\mathcal{H}(\mathbf{x})$ directly, a residual block fits the residual $\mathcal{F}(\mathbf{x}) := \mathcal{H}(\mathbf{x}) - \mathbf{x}$ and recovers the original mapping by addition, as shown in Figure~\ref{fig:resnetblock}:
+\begin{equation}
+    \mathbf{y} = \mathcal{F}(\mathbf{x}, \{W_i\}) + \mathbf{x}.
+    \label{eq:residual}
+\end{equation}
+The identity shortcut adds no parameters and no computational cost, but it gives gradients an unobstructed path to earlier layers, which is what allows the deeper stack to be optimized at all.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.42\textwidth]{figures/fig_resnet_block.png}
+    \caption{Residual learning building block, reproduced from He et al.~\cite{he2016}. The identity shortcut carries $\mathbf{x}$ around the weight layers and is summed with $\mathcal{F}(\mathbf{x})$ before the final activation.}
+    \label{fig:resnetblock}
+\end{figure}
+
+\paragraph{Squeeze-and-Excitation.} A standard convolution treats every output channel as equally relevant. An SE block instead learns to reweight channels according to global context, in three steps (Figure~\ref{fig:seblock}). The \emph{squeeze} step collapses each channel to a single statistic by global average pooling,
+\begin{equation}
+    z_c = \mathbf{F}_{sq}(\mathbf{u}_c) = \frac{1}{H \times W}\sum_{i=1}^{H}\sum_{j=1}^{W} u_c(i,j),
+    \label{eq:squeeze}
+\end{equation}
+producing a $1 \times 1 \times C$ descriptor. The \emph{excitation} step passes this descriptor through a two-layer bottleneck to obtain per-channel gates,
+\begin{equation}
+    \mathbf{s} = \mathbf{F}_{ex}(\mathbf{z}, \mathbf{W}) = \sigma\!\left(\mathbf{W}_2\,\delta(\mathbf{W}_1 \mathbf{z})\right),
+    \label{eq:excitation}
+\end{equation}
+where $\delta$ is ReLU and $\sigma$ the sigmoid. The \emph{scale} step rescales each channel by its gate, $\tilde{\mathbf{x}}_c = s_c \mathbf{u}_c$. For this task the mechanism is well motivated: leaf discrimination depends on a few informative cues (margin serration, venation contrast) whose relevance varies by genus, and SE lets the network emphasise the corresponding channels per image.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figures/fig_se_block.png}
+    \caption{A Squeeze-and-Excitation block, reproduced from Hu et al.~\cite{hu2018}. Global pooling ($\mathbf{F}_{sq}$) summarises each channel, a bottleneck MLP ($\mathbf{F}_{ex}$) produces channel gates, and $\mathbf{F}_{scale}$ reweights the feature map.}
+    \label{fig:seblock}
+\end{figure}
+
+\subsubsection{ResNet50 Feature Extraction}
 In the feature extraction setting, the pretrained ResNet50 backbone is frozen and only the classifier head is trained. This is the fast, low-capacity transfer baseline.
 
-\section{ResNet50 Fine-Tuning}
+\subsubsection{ResNet50 Fine-Tuning}
 In the fine-tuning setting, the final residual block (\texttt{layer4}) and the classifier head are updated during training while earlier layers remain frozen, adapting the deepest, most task-specific features to plant imagery.
 
-\section{Additional Pretrained Backbones}
+\subsubsection{Additional Pretrained Backbones}
 For the deep comparison of the strongest pretrained model against the custom baseline, two modern CNN backbones are optionally included: EfficientNetV2-S~\cite{tan2021} and ConvNeXt-Tiny~\cite{liu2022}, each fine-tuned on its last two feature stages plus the classifier head. All pretrained backbones fall back to random initialization if ImageNet weights cannot be downloaded, so runs remain reproducible offline.
 
-\chapter{Training Configuration}
-\section{Hardware and Execution Environment}
-% TODO: Fill in local machine / Kaggle GPU information.
+\subsection{Training Configuration}
+All models share one training protocol so that differences in the results are attributable to the model rather than to the schedule. The settings below are the defaults; the imbalance-aware options are opt-in and were enabled only for Custom CNN v2.
+\subsubsection{Hardware and Execution Environment}
+All training was carried out on Kaggle GPU instances, since the local development machine has no usable GPU. This division shaped the workflow: the repository is structured as a library with thin command-line entry points so that the same code runs locally for data preparation and analysis and on Kaggle for training, with the notebook pulling the current commit from version control at the start of each session.
 
-\section{Hyperparameters}
+The practical consequence for reproducibility is that model weights and training logs are the durable artifacts. Because the train/validation/test split is deterministic (seed 42), the exact held-out test set can be reconstructed from the seed alone on any machine, so the post-hoc analysis in Section~\ref{sec:results} was run separately from training --- on CPU, from the saved checkpoints --- without any model being retrained. Wall-clock training time was not logged per model in these runs, which is why the efficiency comparison in Section~\ref{sec:results} is reported in epochs rather than minutes.
+
+\subsubsection{Hyperparameters}
 \begin{table}[H]
     \centering
     \caption{Baseline training configuration}
@@ -260,28 +601,78 @@ For the deep comparison of the strongest pretrained model against the custom bas
     \end{tabular}
 \end{table}
 
-\section{Imbalance-Aware Training Options}
-Because of the long-tailed label distribution, the pipeline supports several opt-in training options, each ablatable independently and each defaulting to the plain baseline behaviour: AdamW with cosine (optionally warmup) learning-rate scheduling, label smoothing, class-balanced and focal losses (including a class-balanced focal variant) using effective-number-of-samples weights~\cite{cui2019,lin2017} computed from the training-split class counts, and mixup/cutmix augmentation~\cite{zhang2018,yun2019}. Two reading notes apply to logs from a mixup run: training accuracy appears low because it is measured against original labels on mixed images, and class-balanced/focal validation loss is not directly comparable to a plain cross-entropy run---validation macro F1 is the metric to compare.
+\subsubsection{Imbalance-Aware Training Options}
+Because of the long-tailed label distribution, the pipeline supports several opt-in training options, each ablatable independently and each defaulting to the plain baseline behaviour: AdamW with cosine (optionally warmup) learning-rate scheduling, label smoothing, class-balanced and focal losses (including a class-balanced focal variant) using effective-number-of-samples weights~\cite{cui2019,lin2017} computed from the training-split class counts, and mixup/cutmix augmentation~\cite{zhang2018,yun2019}.
 
-\section{Checkpoint and Logging Strategy}
+MixUp forms training examples as convex combinations of two samples and their labels,
+\begin{equation}
+    \tilde{x} = \lambda x_i + (1-\lambda) x_j, \qquad
+    \tilde{y} = \lambda y_i + (1-\lambda) y_j, \qquad \lambda \sim \mathrm{Beta}(\alpha,\alpha),
+    \label{eq:mixup}
+\end{equation}
+whereas CutMix pastes a rectangular patch of one image into another and mixes the labels in proportion to the patch area. Figure~\ref{fig:cutmix} contrasts the two against plain training and Cutout. Both are relevant here for a reason beyond regularization: they perturb framing, occlusion, and local context --- precisely the nuisance factors that separate lab from field capture (Section~\ref{sec:shortcut}).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{figures/fig_cutmix.png}
+    \caption{Augmentation strategies compared, reproduced from Yun et al.~\cite{yun2019}. Left to right: the unmodified image, MixUp~\cite{zhang2018}, Cutout, and CutMix. Labels are mixed in proportion to the contribution of each source image.}
+    \label{fig:cutmix}
+\end{figure}
+
+Two reading notes apply to logs from a mixup run: training accuracy appears low because it is measured against original labels on mixed images, and class-balanced/focal validation loss is not directly comparable to a plain cross-entropy run---validation macro F1 is the metric to compare.
+
+\subsubsection{Checkpoint and Logging Strategy}
 For each model the pipeline writes the best checkpoint (\texttt{best\_model.pth}, selected by validation macro F1), optional per-epoch checkpoints, a full per-epoch log (\texttt{history.csv} with train/validation loss, accuracy, and macro F1), training-curve and confusion-matrix figures, per-image test predictions, and a JSON summary. Run-level artifacts include the class list, class counts, an all-models comparison table, and the post-hoc analysis outputs described in Section~\ref{sec:domainshift}. The deterministic split makes every one of these reproducible from the saved weights alone.
 
-\chapter{Experiments}
-\section{Experiment 1: Custom CNN from Scratch}
-% TODO: Add training observations and results.
+\subsection{Experimental Runs}
+Four models were trained on the identical split described in Section~\ref{sec:methods}. All runs used a 50-epoch budget with early stopping on validation macro F1 (patience 7); the two pretrained models stopped early, the two scratch models used the full budget. Table~\ref{tab:runsummary} summarises how each run behaved during training, and Figure~\ref{fig:curve_cnnv2} and Figure~\ref{fig:curve_ft} show representative curves.
 
-\section{Experiment 2: ResNet50 Feature Extraction}
-% TODO: Add training observations and results.
+\begin{table}[H]
+    \centering
+    \caption{Training-run summary. ``Epochs to $0.80$'' is the first epoch whose validation macro F1 reached $0.80$, a convergence-speed proxy that is comparable across models.}
+    \label{tab:runsummary}
+    \begin{tabular}{lccccc}
+        \toprule
+        Model & Epochs run & Epoch 1 val.\ F1 & Epochs to $0.80$ & Best epoch & Best val.\ F1 \\
+        \midrule
+        Custom CNN & 50 & 0.089 & 30 & 49 & 0.8711 \\
+        Custom CNN v2 & 50 & 0.099 & 16 & 48 & 0.9627 \\
+        ResNet50 FE & 29 & 0.606 & 4 & 22 & 0.8717 \\
+        ResNet50 FT & 23 & \textbf{0.825} & \textbf{1} & 19 & \textbf{0.9785} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
 
-\section{Experiment 3: ResNet50 Fine-Tuning}
-% TODO: Add training observations and results.
+\subsubsection{Experiment 1: Custom CNN from Scratch}
+The baseline network starts from random weights and must learn leaf features from the 51{,}504 project images alone. This shows clearly in the first epoch: validation macro F1 is $0.089$ while validation \emph{accuracy} is already $0.496$. The gap between the two is diagnostic of the long tail --- at that point the network has essentially learned to predict Tomato, which alone accounts for roughly 31\% of images, and macro F1 correctly refuses to reward that. This is the concrete justification for selecting on macro F1 rather than accuracy.
 
-\chapter{Results and Analysis}
-% NOTE: All numeric cells below are placeholders ("--") pending the final Kaggle
-% analysis run (analyze_kaggle.py -> analysis_comparison.csv / source_analysis.csv).
-% Do not fill until those artifacts are available.
+Progress is steady but slow: the run needs 30 epochs to reach $0.80$ validation macro F1 and is still improving when the 50-epoch budget expires (best epoch 49, $0.8711$). The model is therefore \emph{budget-limited} rather than converged, which is worth stating plainly --- the scratch baseline is not being shown at its ceiling.
 
-\section{Quantitative Results}
+\subsubsection{Experiment 2: ResNet50 Feature Extraction}
+Freezing the ImageNet backbone and training only the classifier head produces the opposite profile. The very first epoch reaches $0.606$ validation macro F1 --- nearly seven times the scratch baseline's first epoch --- because the representation is already useful and only the linear head has to be fitted. The run crosses $0.80$ by epoch 4 and early-stops at epoch 29.
+
+The ceiling, however, is low. Its best validation macro F1 ($0.8717$) is statistically indistinguishable from the scratch baseline's ($0.8711$), despite converging roughly seven times faster. Frozen ImageNet features are thus \emph{immediately} useful for leaf imagery but not \emph{sufficient} for it: with the backbone fixed, the network cannot adapt its representation to venation, margin serration, or the specific textures that separate 73 tree genera. This experiment is what makes the fine-tuning comparison in Experiment 3 interpretable.
+
+\subsubsection{Experiment 3: ResNet50 Fine-Tuning}
+Unfreezing \texttt{layer4} together with the classifier head, at a reduced learning rate of $1 \times 10^{-4}$, changes the outcome decisively. Validation macro F1 reaches $0.825$ \emph{within the first epoch} --- already above what the scratch baseline achieves after 30 epochs and above what feature extraction reaches at any point. The run early-stops at epoch 23 with a best validation macro F1 of $0.9785$ at epoch 19.
+
+Comparing Experiments 2 and 3 isolates the contribution of adaptation, since the two share an identical backbone and differ only in whether its deepest stage is updated. Allowing that single stage to adapt is worth roughly 11 macro-F1 points, whereas possessing the pretrained weights without adapting them is worth essentially nothing relative to training from scratch. This is the evidence behind the answer to RQ2 in Section~\ref{sec:results}.
+
+\subsubsection{Experiment 4: Custom CNN v2 (Scratch with a Modern Recipe)}
+The fourth run tests whether the scratch baseline's weakness is inherent to training from scratch or is an artifact of an outdated training recipe. Custom CNN v2 adds residual connections and SE attention (Section~\ref{sec:methods}) and the Tier-1 recipe --- AdamW, cosine warmup, label smoothing, class-balanced focal loss, MixUp and CutMix --- while keeping the same data, split, and budget, and using no pretrained weights.
+
+It reaches $0.80$ validation macro F1 by epoch 16, roughly twice as fast as the plain baseline, and finishes at $0.9627$ --- about 9 macro-F1 points above both the scratch baseline and feature extraction, and within 1.6 points of fine-tuning. Like Experiment 1 it is still improving at the budget limit. The practical implication is that on a dataset of this size, most of the advantage usually attributed to transfer learning can be recovered by training methodology alone.
+
+\section{IV/ RESULTS AND DISCUSSION}
+\label{sec:results}
+This section reports the four models' test-set performance, decomposes it by acquisition source to answer the generalization question, and interprets both against the research questions of Section~
+ef{sec:objectives}.
+% Numbers below come from the Kaggle analysis run (analyze_kaggle.py ->
+% analysis_comparison.csv / source_analysis.csv), single seed, 76 classes.
+% Macro precision/recall are the unweighted means over per_class_metrics.csv;
+% the macro F1 recomputed the same way matches analysis_comparison.csv exactly.
+
+\subsection{Quantitative Results}
 Table~\ref{tab:main} reports test-set performance for all models on the shared held-out split. Macro F1 is the primary metric; top-1 and top-5 accuracy are included for reference and to satisfy the registered evaluation protocol.
 
 \begin{table}[H]
@@ -292,54 +683,207 @@ Table~\ref{tab:main} reports test-set performance for all models on the shared h
         \toprule
         Model & Top-1 Acc.\ & Top-5 Acc.\ & Macro Prec.\ & Macro Rec.\ & Macro F1 \\
         \midrule
-        Custom CNN & -- & -- & -- & -- & -- \\
-        Custom CNN v2 & -- & -- & -- & -- & -- \\
-        ResNet50 FE & -- & -- & -- & -- & -- \\
-        ResNet50 FT & -- & -- & -- & -- & -- \\
-        EfficientNetV2-S & -- & -- & -- & -- & -- \\
-        ConvNeXt-Tiny & -- & -- & -- & -- & -- \\
+        Custom CNN & 0.9222 & 0.9916 & 0.8857 & 0.8723 & 0.8730 \\
+        Custom CNN v2 & 0.9655 & 0.9978 & 0.9464 & 0.9846 & 0.9637 \\
+        ResNet50 FE & 0.9167 & 0.9925 & 0.8983 & 0.8626 & 0.8737 \\
+        ResNet50 FT & \textbf{0.9849} & \textbf{0.9994} & \textbf{0.9732} & 0.9775 & \textbf{0.9747} \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-\section{Generalization: Lab versus Field}
+\subsection{Generalization: Lab versus Field}
 Table~\ref{tab:source} is the key result for the generalization question. For each model it reports accuracy on the three acquisition sources; the \texttt{leafsnap\_lab} $\rightarrow$ \texttt{leafsnap\_field} gap (same genera, different capture conditions) measures reliance on capture conditions rather than morphology.
 
 \begin{table}[H]
     \centering
-    \caption{Accuracy by acquisition source, and the lab-to-field gap.}
+    \caption{Accuracy by acquisition source, and the lab-to-field gap. Test images per source: PlantVillage 3{,}097, Leafsnap lab 3{,}491, Leafsnap field 1{,}175. The gap column is (field $-$ lab) accuracy in percentage points; rows are ordered by gap magnitude.}
     \label{tab:source}
     \begin{tabular}{lcccc}
         \toprule
         Model & PlantVillage & Leafsnap lab & Leafsnap field & Lab$\rightarrow$field gap \\
         \midrule
-        Custom CNN & -- & -- & -- & -- \\
-        Custom CNN v2 & -- & -- & -- & -- \\
-        ResNet50 FE & -- & -- & -- & -- \\
-        ResNet50 FT & -- & -- & -- & -- \\
+        Custom CNN & 0.9890 & 0.9218 & 0.7472 & $-$17.5 \\
+        ResNet50 FE & 0.9916 & 0.8848 & 0.8136 & $-$7.1 \\
+        Custom CNN v2 & 0.9700 & 0.9794 & 0.9123 & $-$6.7 \\
+        ResNet50 FT & 0.9984 & 0.9860 & 0.9464 & $\mathbf{-4.0}$ \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-\section{Training Curves}
-% TODO: Insert training_curves.png (validation loss / macro F1 vs epoch) once available.
+\subsection{Training Curves}
+Table~\ref{tab:convergence} summarizes convergence for each model. The two scratch models ran the full 50-epoch budget; both pretrained models stopped earlier under macro-F1 early stopping, at 29 and 23 epochs respectively.
 
-\section{Confusion Matrix and Per-Class Analysis}
-% TODO: Insert confusion matrices, most-confused pairs, and per-class F1 vs class size.
+\begin{table}[H]
+    \centering
+    \caption{Convergence behaviour. The overfit gap is final training macro F1 minus final validation macro F1; negative values mean validation scored \emph{above} training.}
+    \label{tab:convergence}
+    \begin{tabular}{lccccc}
+        \toprule
+        Model & Epochs & Best epoch & Best val.\ F1 & Final train F1 & Overfit gap \\
+        \midrule
+        Custom CNN & 50 & 49 & 0.8711 & 0.7991 & $-$0.044 \\
+        Custom CNN v2 & 50 & 48 & 0.9627 & 0.7218 & $-$0.241 \\
+        ResNet50 FE & 29 & 22 & 0.8717 & 0.8112 & $-$0.048 \\
+        ResNet50 FT & 23 & 19 & \textbf{0.9785} & 0.9863 & $+$0.013 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
 
-\section{Grad-CAM Interpretability}
-% TODO: Insert lab-correct vs field-misclassified Grad-CAM panels (Section~\ref{sec:domainshift}).
+Two features of Table~\ref{tab:convergence} deserve comment. First, \textbf{convergence speed scales with transfer}: ResNet50 FT reaches its best validation macro F1 at epoch 19 and a higher score than either scratch model attains in 50 epochs, which is the expected benefit of reusing ImageNet features. Second, and less obvious, \textbf{three of the four models show a negative overfit gap}---validation macro F1 exceeds training macro F1---most dramatically for Custom CNN v2 ($-0.241$). This is not a data leak. Training macro F1 is computed on batches distorted by the Tier-1 augmentation stack (MixUp $\alpha=0.2$, CutMix $\alpha=1.0$, label smoothing $0.1$), while validation is measured on clean images. MixUp and CutMix in particular produce blended labels on which a hard-label F1 is systematically pessimistic, so the training figure understates the model's real fit. ResNet50 FT, which converged before augmentation noise dominated, is the only model with a conventional positive gap---and even there the gap is small ($+0.013$), indicating none of the models is meaningfully overfitting.
 
-\section{Runtime and Efficiency}
-% TODO: Compare training time, convergence speed, and stability across models.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figures/curve_custom_cnn_v2.png}
+    \caption{Custom CNN v2 training curves. The persistent gap between the training and validation traces is the augmentation artifact discussed above, not overfitting in reverse.}
+    \label{fig:curve_cnnv2}
+\end{figure}
 
-\section{Discussion}
-% TODO: Interpret (a) scratch vs pretrained trade-offs, (b) the lab->field gap and what it
-% implies about learned features, (c) whether the headline accuracy reflects plant
-% recognition or source separation. Tie back to hypotheses H1-H4 from the literature review.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figures/curve_resnet50_ft.png}
+    \caption{ResNet50 fine-tuning curves. Convergence is rapid and early stopping halts training at epoch 23.}
+    \label{fig:curve_ft}
+\end{figure}
 
-\chapter{Limitations and Future Work}
-\section{Current Limitations}
+\subsection{Confusion Matrix and Per-Class Analysis}
+Aggregate metrics say how much a model errs; the error structure says whether those errors are botanically sensible. Both questions bear on RQ4.
+
+\subsubsection{Which classes fail}
+The weakest classes are consistently \emph{tree genera with few training images}, never the three crop categories. For the Custom CNN the five lowest per-class F1 scores are Styrax (0.514, 214 training images), Stewartia (0.657, 115), Carpinus (0.700, 219), Prunus (0.704, 930) and Paulownia (0.706, 99). ResNet50 FT lifts the same tail substantially---its weakest class, Halesia, still scores 0.894---but the identity of the difficult classes barely changes. Figure~\ref{fig:f1size} shows the relationship between per-class F1 and training-set size directly.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/f1_vs_size_custom_cnn.png}
+    \caption{Per-class F1 versus training-set size, Custom CNN. Low-support genera dominate the low-F1 region.}
+    \label{fig:f1size}
+\end{figure}
+
+Prunus is the informative exception: with 930 training images it is not data-poor, yet the Custom CNN scores only 0.704 on it and ResNet50 FE only 0.646. Prunus is a large, morphologically heterogeneous genus, so the failure here is genuine botanical difficulty rather than scarcity---the kind of fine-grained confusion that persists in large-scale plant benchmarks even with abundant data~\cite{goeau2017}.
+
+\subsubsection{Confusion structure}
+The most-confused pairs are botanically plausible rather than arbitrary. For ResNet50 FT the leading confusions are Prunus~$\rightarrow$~Quercus (13 cases), Potato~$\rightarrow$~Tomato (5), Pinus~$\rightarrow$~Prunus (4), Cornus~$\rightarrow$~Halesia (4) and Paulownia~$\rightarrow$~Catalpa (3). Two observations follow. First, Paulownia~$\rightarrow$~Catalpa and Cornus~$\rightarrow$~Halesia are confusions between genera with genuinely similar broad, simple, entire-margined leaves---the model is failing on morphological resemblance, which is the failure mode one would want. Second, Potato~$\rightarrow$~Tomato recurs in every model (14 cases for the Custom CNN); both are Solanaceae with compound pinnate leaves, so this too tracks real morphology.
+
+Critically, \textbf{cross-source confusions are rare}. Errors overwhelmingly stay within the tree-genus group or within the crop group, rather than crossing between PlantVillage crops and Leafsnap genera. This is consistent with the source-separation concern raised in Section~\ref{sec:domainshift}: the two sources are easy to tell apart, so the models almost never confuse a crop with a tree, and the headline 76-class accuracy is inflated by that easy separation.
+
+\subsection{Grad-CAM Interpretability}
+\label{sec:gradcamresults}
+Accuracy decomposition establishes \emph{that} the models degrade from lab to field; it cannot say \emph{why}. Grad-CAM supplies the mechanistic test, and it is the standard diagnostic for this purpose: Geirhos et al.~\cite{geirhos2020} recommend exactly such interpretability checks to distinguish a model that has learned the intended feature from one exploiting a correlated cue, and background-attention evidence of this kind established the Clever Hans reading of camera-trap~\cite{beery2018} and plant-disease~\cite{ahmad2023} classifiers.
+
+\paragraph{Protocol.} For each of five genera, a Leafsnap \emph{lab} image that the Custom CNN classifies correctly is paired with a Leafsnap \emph{field} image of the \emph{same genus} that it misclassifies. Holding the genus fixed means the label is identical across the pair, so any difference in where a model looks is attributable to capture conditions alone. All four models are then visualized on the same pairs, making the rows directly comparable. To summarise each heatmap with one number, we report \emph{centre attention}: the fraction of Grad-CAM mass falling in the central 50\% of the frame. Leaves are roughly centred in both Leafsnap domains, so a drop in this quantity indicates attention moving toward the background. It is a coarse proxy and is reported alongside the panels rather than as a standalone claim.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figures/fig_gradcam_acer.png}
+    \caption{Grad-CAM for genus \emph{Acer}: a lab image every model classifies correctly (left pair) beside a field image of the same genus (right pair). Rows are Custom CNN, ResNet50 FE, and ResNet50 FT. On the field image the Custom CNN's attention leaves the leaf entirely and settles on the background, and it predicts \emph{Ginkgo}; the fine-tuned model keeps its attention on the blade and predicts \emph{Acer} with confidence 1.00.}
+    \label{fig:gradcamacer}
+\end{figure}
+
+\paragraph{Findings.} Table~\ref{tab:gradcam} reports the aggregate over all five pairs.
+
+\begin{table}[H]
+    \centering
+    \caption{Grad-CAM summary over five lab/field genus pairs. Pairs were chosen so the Custom CNN is correct on every lab image and wrong on every field image; the other models were not selected on and are evaluated on the same images.}
+    \label{tab:gradcam}
+    \begin{tabular}{lcccc}
+        \toprule
+        & \multicolumn{2}{c}{Centre attention} & \multicolumn{2}{c}{Accuracy on these pairs} \\
+        \cmidrule(r){2-3}\cmidrule(l){4-5}
+        Model & lab & field & lab & field \\
+        \midrule
+        Custom CNN & 0.590 & \textbf{0.345} & 1.00 & \textbf{0.00} \\
+        Custom CNN v2 & 0.542 & 0.427 & 1.00 & 1.00 \\
+        ResNet50 FE & 0.693 & 0.609 & 0.80 & 0.60 \\
+        ResNet50 FT & 0.667 & \textbf{0.719} & 1.00 & \textbf{1.00} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+The prediction stated in Section~\ref{sec:domainshift} is confirmed for the weakest model and refuted for the strongest, which is the informative outcome. The Custom CNN loses 0.245 of its centre attention moving to field imagery --- the largest drift of any model --- and gets every one of these field images wrong. Figure~\ref{fig:gradcamacer} shows the failure concretely: on the field \emph{Acer} its heatmap abandons the leaf, concentrates on a background region, and the prediction flips to \emph{Ginkgo}. This is what reliance on capture conditions looks like.
+
+ResNet50 FT behaves in the opposite way. Its centre attention does not fall at all on field images ($0.667 \rightarrow 0.719$), and it classifies all five correctly despite these being images specifically selected as failures of another model. Custom CNN v2 sits between the two: its attention drifts somewhat ($0.542 \rightarrow 0.427$) but it still classifies all five correctly, consistent with augmentation buying robustness without fully eliminating condition sensitivity.
+
+The ordering of centre-attention drift --- Custom CNN $-0.245$, Custom CNN v2 $-0.115$, ResNet50 FE $-0.084$, ResNet50 FT $+0.052$ --- matches the ordering of the lab-to-field accuracy gaps in Table~\ref{tab:source} ($-17.5$, $-6.7$, $-7.1$, $-4.0$) in every position but the middle two, which are separated by less than half a point of accuracy. The saliency evidence therefore corroborates the accuracy decomposition rather than merely illustrating it: models with larger measured gaps really do move their attention off the leaf under field conditions.
+
+\paragraph{Limitations.} Five genera is a small sample, chosen by one model's failures, and centre attention is a geometric proxy rather than a segmentation-based measure of leaf overlap. These panels support the mechanism; they do not establish it quantitatively. A larger study with leaf masks, reporting the fraction of Grad-CAM mass inside the true leaf region, is listed in Section~\ref{sec:futurework}.
+
+\subsection{Effect of Class Imbalance}
+\label{sec:imbalance}
+Section~\ref{sec:methods} documented a $\sim$250:1 imbalance with 45 of 76 classes below 300 training images, and the pipeline responds to it with macro-F1 model selection and optional class-balanced losses. The natural expectation is that rare classes should still score worse. Table~\ref{tab:headtail} tests that expectation by splitting the label space at 300 training images and averaging per-class F1 within each part.
+
+\begin{table}[H]
+    \centering
+    \caption{Per-class F1 averaged over head classes ($\geq 300$ training images, 23 classes) and tail classes ($< 300$, 53 classes). A positive gap means the head is easier.}
+    \label{tab:headtail}
+    \begin{tabular}{lccc}
+        \toprule
+        Model & Tail F1 (53) & Head F1 (23) & Head $-$ tail \\
+        \midrule
+        Custom CNN & 0.8652 & 0.8909 & $+0.026$ \\
+        Custom CNN v2 & 0.9635 & 0.9641 & $+0.001$ \\
+        ResNet50 FE & 0.8761 & 0.8681 & $-0.008$ \\
+        ResNet50 FT & 0.9733 & 0.9779 & $+0.005$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+The result is that \textbf{the head--tail gap is negligible for every model}, and for ResNet50 FE it is slightly negative --- rare classes score \emph{above} common ones. Correlating $\log_{10}$(training images) against per-class F1 gives the same picture: $r$ ranges from $+0.03$ to $+0.17$ across the four models, and restricted to the 73 tree genera (excluding the three very large crop classes) it falls to between $-0.13$ and $+0.09$. Training-set size is close to uninformative about per-class performance here.
+
+Three observations follow, and they do not all point the same way.
+
+First, the imbalance-aware machinery works where it is used. Custom CNN v2 --- the only model trained with class-balanced focal loss --- has the smallest gap of all ($+0.001$). That is the outcome the technique is designed to produce.
+
+Second, that cannot be the whole explanation, because ResNet50 FE uses \emph{no} imbalance handling at all and still records $-0.008$. Something other than the loss function is flattening the head--tail difference.
+
+Third, and most plausibly, class size is simply not the binding constraint on this task; morphological difficulty is. The clearest evidence is Prunus, discussed in Section~\ref{sec:results}: with 930 training images it sits comfortably in the head, yet scores 0.704 (Custom CNN) and 0.646 (ResNet50 FE), among the weakest classes in the dataset. It is a large, morphologically heterogeneous genus. Conversely Toona, the smallest class at 64 images, is not among the failures. What separates classes here is how distinctive their leaves are, not how many examples were available.
+
+\paragraph{Implication for the thesis.} Quantitatively, imbalance costs at most $0.026$ macro-F1 points of head--tail difference, and for three of four models less than $0.01$. The lab-to-field gap over the same test set costs between $4.0$ and $17.5$ accuracy points (Table~\ref{tab:source}). Measured on identical data, \textbf{domain shift dominates class imbalance by an order of magnitude}. This is worth stating explicitly because the 250:1 ratio is the more visually striking property of the dataset and the one a reader is likely to assume is the main obstacle.
+
+\paragraph{Caveat.} The Custom CNN run was still improving when its 50-epoch budget expired (Section~\ref{sec:results}), so its head--tail gap --- the largest of the four --- may not be fully converged. These are also single-seed results, so differences of $0.01$ or less between models should not be read as meaningful.
+
+\subsection{Runtime and Efficiency}
+Wall-clock training time was not logged per model in the runs reported here, so this section compares efficiency in epochs rather than minutes; all models trained on the same Kaggle GPU under identical batch size (16) and input resolution, which makes per-epoch cost broadly comparable within each architecture family.
+
+Measured in epochs to best validation macro F1, the ordering is unambiguous: ResNet50 FT reaches 0.9785 at epoch 19, Custom CNN v2 reaches 0.9627 at epoch 48, ResNet50 FE reaches 0.8717 at epoch 22, and the Custom CNN reaches 0.8711 at epoch 49. Fine-tuning is thus both the most accurate and the fastest-converging configuration---it needs roughly 40\% of the epoch budget the scratch models consume while ending 11 macro-F1 points ahead of the Custom CNN.
+
+Feature extraction shows the expected efficiency profile in a different way: it converges quickly (epoch 22) because only the classifier head is trained, but it plateaus at essentially the Custom CNN's accuracy. Freezing the backbone therefore buys convergence speed rather than final quality on this task, since ImageNet features are used as-is and never adapt to leaf imagery.
+
+A caveat for interpreting these numbers: per-epoch cost is not equal across models. ResNet50 updates far more parameters per step than the custom architectures, so an epoch of fine-tuning is more expensive in absolute terms than an epoch of Custom CNN training, and the epoch-based comparison flatters fine-tuning less than a wall-clock comparison would. Logging per-model runtime is listed in Section~\ref{sec:futurework} as straightforward future work.
+
+\subsection{Discussion}
+\label{sec:discussion}
+This subsection answers the four research questions of Section~
+ef{sec:objectives} in turn, then considers what the results imply for deploying such a classifier.
+
+\subsubsection{Scratch versus pretrained: the expected result, with a qualification}
+Fine-tuning wins, as the literature predicts: ResNet50 FT leads on every metric in Table~\ref{tab:main} (0.9849 top-1, 0.9747 macro F1) and converges in fewer epochs. The qualification is that \emph{pretraining alone} is not what produces the win. ResNet50 FE---the same ImageNet backbone, frozen---scores 0.8737 macro F1, statistically indistinguishable from the Custom CNN trained entirely from scratch (0.8730). The benefit comes from \emph{adapting} the representation to leaf imagery, not from possessing it. Frozen ImageNet features, on this task, are worth about as much as features learned from scratch on 51{,}504 plant images.
+
+The sharpest result in this direction is Custom CNN v2. Trained from scratch, with no pretrained weights whatsoever, it reaches 0.9637 macro F1---roughly 9 points above both the original Custom CNN and ResNet50 FE, and within 1.1 points of fine-tuning. The only difference from Custom CNN v1 is the Tier-1 training recipe (AdamW, cosine warmup, label smoothing, class-balanced focal loss, MixUp and CutMix). On a dataset of this size, training methodology recovers most of the gap that transfer learning is usually credited with closing. The scratch-versus-pretrained framing, taken at face value, would have missed this.
+
+\subsubsection{The lab-to-field gap}
+Table~\ref{tab:source} is the report's central finding, and it holds in two directions at once.
+
+\textbf{The gap is universal.} Every model loses accuracy moving from Leafsnap lab to Leafsnap field---$-17.5$, $-7.1$, $-6.7$ and $-4.0$ points. Because both domains cover the \emph{same genera}, this cannot be explained by label difficulty, class imbalance, or the source confound; the only variable is capture condition. Degradation under natural lighting, occlusion, and cluttered backgrounds is therefore a property of the task as posed, not a deficiency of any one architecture.
+
+\textbf{The gap is compressible.} It shrinks monotonically with model quality, from $-17.5$ to $-4.0$. Better representations do not merely score higher on clean images; they transfer better across capture conditions. Fine-tuning cuts the Custom CNN's gap by more than three quarters while also raising absolute field accuracy from 0.7472 to 0.9464.
+
+The interaction between these two facts is where the interesting result lies. Custom CNN v2 achieves a $-6.7$ point gap, \emph{smaller} than ResNet50 FE's $-7.1$, despite using no pretrained weights at all. Aggressive augmentation---MixUp, CutMix, and the geometric and photometric transforms in the Tier-1 stack---appears to substitute for pretraining specifically on the robustness axis. This makes mechanistic sense: augmentation directly perturbs the nuisance factors (lighting, occlusion, framing) that separate lab from field~\cite{hendrycks2020}, whereas frozen ImageNet features were never exposed to that variation in the context of leaves. Neither approach eliminates the gap, which suggests the residual $-4$ to $-7$ points reflect information genuinely absent or ambiguous in field imagery rather than a fixable representational shortcoming.
+
+\paragraph{Comparison with the literature.} The gaps measured here are far smaller than the collapses reported for PlantVillage-trained models---99.35\% to roughly 31\% in Mohanty et al.~\cite{mohanty2016}, and to 33.27\% in Ahmad et al.~\cite{ahmad2023}. The difference is instructive rather than contradictory, and it follows from how the shift is constructed. Those studies train on one domain and test on a genuinely disjoint one, so the models meet field conditions for the first time at test time. Here, both Leafsnap domains are present in the training split, so the comparison measures how much harder field images remain \emph{after} the model has seen some---a within-training-distribution robustness gap rather than true out-of-distribution transfer. The values are therefore a lower bound on the degradation a deployed system would face. Section~\ref{sec:futurework} lists the stricter protocol---training on lab only and testing on field---that would measure the Mohanty-style gap directly on this dataset. That the gap persists at $-4$ points even for a fine-tuned model that has seen field images during training makes the underlying difficulty, if anything, more striking.
+
+\subsubsection{Does the headline number measure plant recognition?}
+Partly, and the report should not claim more. Three pieces of evidence bear on this.
+
+First, all models score near-ceiling on PlantVillage crops (0.9700--0.9984) while scoring far lower on Leafsnap field (0.7472--0.9464). The overall accuracy in Table~\ref{tab:main} is a weighted average dominated by the easier sources: PlantVillage and Leafsnap lab together supply 6{,}588 of the 7{,}763 test images, with only 1{,}175 from field.
+
+Second, as Section~\ref{sec:domainshift} anticipated, cross-source confusions are rare---errors stay within the crop group or within the tree-genus group. The models are not distinguishing 76 classes uniformly; they are solving a comparatively easy source-level partition and then a harder within-source problem. Ahmad et al.~\cite{ahmad2023} quantified how little signal that partition requires: eight background pixels from a PlantVillage image suffice for 49.0\% accuracy against a 2.6\% random baseline. Since PlantVillage and Leafsnap differ systematically in resolution and background, a comparable shortcut is available here, and the near-absence of cross-source errors is what one would expect if the models are taking it.
+
+Third, and most directly, the same models that appear near-perfect overall lose up to 17.5 points when only capture conditions change. A model that had learned leaf morphology in a condition-independent way would not.
+
+The honest reading is that headline accuracy on this merged dataset overstates plant-recognition ability, and that the source-conditioned numbers in Table~\ref{tab:source}---particularly field accuracy---are the figures that should be quoted when the question is whether a model recognizes plants. This is why the report treats the lab-to-field gap, not top-1 accuracy, as its primary result. Grad-CAM would test the proposed mechanism directly; until it is run, the claim rests on the accuracy decomposition rather than on evidence about what the models attend to.
+
+\section{V/ CONCLUSION \& PERSPECTIVE}
+\label{sec:conclusion}
+\subsection{Limitations and Validity Threats}
 \begin{itemize}
     \item \textbf{Source confound.} PlantVillage and Leafsnap differ systematically in resolution and background, so the two sources are partly separable without recognizing plants; headline accuracy across all 76 classes should be read together with the source-conditioned analysis (Section~\ref{sec:domainshift}), not on its own.
     \item \textbf{Mixed label granularity.} The label space combines crop-level (PlantVillage) and genus-level (Leafsnap) categories rather than uniform botanical species, so this is not species-level identification.
@@ -348,8 +892,11 @@ Table~\ref{tab:source} is the key result for the generalization question. For ea
     \item \textbf{Leaf-only scope.} Only leaf images are used; flowers and fruits, mentioned in the original proposal, are outside the scope of the chosen datasets.
 \end{itemize}
 
-\section{Future Work}
+\subsection{Future Work}
+\label{sec:futurework}
 \begin{itemize}
+    \item Grad-CAM saliency comparison on lab-correct versus field-misclassified images, to test the mechanism proposed in Section~\ref{sec:discussion},
+    \item per-model wall-clock runtime logging, absent from the current runs,
     \item Multi-seed runs with mean$\pm$standard-deviation reporting to establish significance,
     \item explicit control of the source confound (e.g.\ matched resolution, or evaluation restricted within a single source),
     \item deeper cross-condition study: training on lab only and testing on field to quantify the domain gap directly,
@@ -357,23 +904,16 @@ Table~\ref{tab:source} is the key result for the generalization question. For ea
     \item resume-capable checkpointing for long Kaggle sessions.
 \end{itemize}
 
-\chapter{Conclusion}
-This internship project establishes a practical pipeline for large-scale plant classification using both scratch-trained and pretrained CNN models. The report is expected to show the relative strengths of custom CNNs and transfer learning approaches in terms of performance, training efficiency, and deployment readiness.
+\subsection{Summary of Contributions}
+This internship project establishes a practical pipeline for large-scale plant classification using both scratch-trained and pretrained CNN models, and uses it to ask what such models actually learn.
 
-\appendix
-\chapter{Project Files}
-The implementation is organized as a reusable library (\texttt{plant\_classifier/}) with thin
-entry-point scripts and Kaggle notebooks:
-\begin{itemize}
-    \item \texttt{plant\_classifier/} --- \texttt{config.py}, \texttt{data.py}, \texttt{models.py}, \texttt{losses.py}, \texttt{mixup.py}, \texttt{training.py}, \texttt{analysis.py}, \texttt{inference.py}, \texttt{plots.py}, \texttt{paths.py}
-    \item \texttt{scripts/train\_kaggle.py} --- training CLI
-    \item \texttt{scripts/analyze\_kaggle.py} --- post-training analysis CLI (no retraining)
-    \item \texttt{scripts/infer\_kaggle.py} --- inference CLI
-    \item \texttt{scripts/02\_restructure\_dataset.py} --- builds \texttt{dataset\_plant\_classification/}
-    \item \texttt{notebooks/Kaggle\_Run\_From\_Git.ipynb} --- main Kaggle entry (clone repo, train, analyze, bundle)
-\end{itemize}
+Fine-tuned ResNet50 performs best (0.9849 top-1, 0.9747 macro F1) and converges fastest, confirming the expected advantage of transfer learning. Two results qualify that headline. Frozen ImageNet features (ResNet50 FE, 0.8737 macro F1) perform no better than a CNN trained from scratch (0.8730), so the advantage comes from adapting the representation rather than from pretraining as such; and a scratch model with a modern training recipe (Custom CNN v2, 0.9637) closes most of the remaining distance to fine-tuning without any pretrained weights.
 
-\renewcommand{\bibname}{References}
+The central finding concerns generalization. Across the Leafsnap lab and field domains---the same genera under different capture conditions---every model loses accuracy, by 17.5, 7.1, 6.7 and 4.0 points respectively. The gap is universal, so condition sensitivity is a property of the task; it is also compressible, shrinking as representations improve, with augmentation substituting for pretraining on this axis specifically. Because errors rarely cross between the two source datasets, headline 76-class accuracy partly measures source separation rather than plant recognition, and the source-conditioned results should be quoted when the question is how well a model recognizes plants. Grad-CAM analysis on matched lab/field pairs corroborates the mechanism: the weakest model's attention leaves the leaf entirely on field images it misclassifies, while the fine-tuned model's does not. A further finding is that class imbalance, despite a striking 250:1 ratio, costs at most 0.026 macro-F1 points of head-to-tail difference --- an order of magnitude less than the domain shift measured on the same test set.
+
+\clearpage
+\renewcommand{\refname}{REFERENCES}
+\addcontentsline{toc}{section}{REFERENCES}
 \begin{thebibliography}{99}
 \bibitem{hughes2015} Hughes, D. P., and Salath\'e, M. (2015). An open access repository of images on plant health to enable the development of mobile disease diagnostics. \emph{arXiv:1511.08060}.
 \bibitem{kumar2012} Kumar, N., et al.\ (2012). LeafSnap: A Computer Vision System for Automatic Plant Species Identification. \emph{ECCV}, 502--516.
@@ -387,6 +927,38 @@ entry-point scripts and Kaggle notebooks:
 \bibitem{yun2019} Yun, S., et al.\ (2019). CutMix: Regularization Strategy to Train Strong Classifiers with Localizable Features. \emph{ICCV}.
 \bibitem{tan2021} Tan, M., and Le, Q. V. (2021). EfficientNetV2: Smaller Models and Faster Training. \emph{ICML}.
 \bibitem{liu2022} Liu, Z., et al.\ (2022). A ConvNet for the 2020s. \emph{CVPR}.
+\bibitem{mohanty2016} Mohanty, S. P., Hughes, D. P., and Salath\'e, M. (2016). Using Deep Learning for Image-Based Plant Disease Detection. \emph{Frontiers in Plant Science}, 7, 1419.
+\bibitem{geirhos2020} Geirhos, R., Jacobsen, J.-H., Michaelis, C., Zemel, R., Brendel, W., Bethge, M., and Wichmann, F. A. (2020). Shortcut Learning in Deep Neural Networks. \emph{Nature Machine Intelligence}, 2(11), 665--673.
+\bibitem{beery2018} Beery, S., Van Horn, G., and Perona, P. (2018). Recognition in Terra Incognita. \emph{ECCV}, 456--473.
+\bibitem{geirhos2019} Geirhos, R., Rubisch, P., Michaelis, C., Bethge, M., Wichmann, F. A., and Brendel, W. (2019). ImageNet-trained CNNs are biased towards texture; increasing shape bias improves accuracy and robustness. \emph{ICLR}.
+\bibitem{ahmad2023} Ahmad, A., Saraswat, D., El Gamal, A., and Johal, G. (2023). Toward Generalization of Deep Learning-Based Plant Disease Identification Under Controlled and Field Conditions. \emph{IEEE Access}, 11, 9042--9057.
+\bibitem{hendrycks2020} Hendrycks, D., Mu, N., Cubuk, E. D., Zoph, B., Gilmer, J., and Lakshminarayanan, B. (2020). AugMix: A Simple Data Processing Method to Improve Robustness and Uncertainty. \emph{ICLR}.
+\bibitem{goeau2017} Go\"eau, H., Bonnet, P., and Joly, A. (2017). Plant Identification Based on Noisy Web Data: The Amazing Performance of Deep Learning (LifeCLEF 2017). \emph{CLEF Working Notes}.
+\bibitem{barre2017} Barr\'e, P., St\"over, B. C., M\"uller, K. F., and Steinhage, V. (2017). LeafNet: A Computer Vision System for Automatic Plant Species Identification. \emph{Ecological Informatics}, 40, 50--56.
 \end{thebibliography}
+
+\clearpage
+\section*{APPENDICES}
+\addcontentsline{toc}{section}{APPENDICES}
+
+\subsection*{Appendix A: Project File Structure}
+The implementation is organized as a reusable library (\texttt{plant\_classifier/}) with thin
+entry-point scripts and Kaggle notebooks:
+\begin{itemize}
+    \item \texttt{plant\_classifier/} --- \texttt{config.py}, \texttt{data.py}, \texttt{models.py}, \texttt{losses.py}, \texttt{mixup.py}, \texttt{training.py}, \texttt{analysis.py}, \texttt{inference.py}, \texttt{plots.py}, \texttt{paths.py}
+    \item \texttt{scripts/train\_kaggle.py} --- training CLI
+    \item \texttt{scripts/analyze\_kaggle.py} --- post-training analysis CLI (no retraining)
+    \item \texttt{scripts/infer\_kaggle.py} --- inference CLI
+    \item \texttt{scripts/02\_restructure\_dataset.py} --- builds \texttt{dataset\_plant\_classification/}
+    \item \texttt{notebooks/Kaggle\_Run\_From\_Git.ipynb} --- main Kaggle entry (clone repo, train, analyze, bundle)
+\end{itemize}
+
+\subsection*{Appendix B: Reproducibility}
+All results in this thesis come from a single deterministic split (seed 42) over
+\texttt{dataset\_plant\_classification} (76 classes, 51{,}504 images). Because the split is
+reproducible from the seed alone, any saved checkpoint can be re-evaluated on the exact
+held-out test set without retraining; this is what makes the source-conditioned analysis in
+Section~\ref{sec:results} possible after the fact. Training was carried out on Kaggle GPU
+instances; the analysis stage runs on CPU.
 
 \end{document}
