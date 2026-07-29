@@ -769,42 +769,42 @@ Critically, \textbf{cross-source confusions are rare}. Errors overwhelmingly sta
 \label{sec:gradcamresults}
 Accuracy decomposition establishes \emph{that} the models degrade from lab to field; it cannot say \emph{why}. Grad-CAM supplies the mechanistic test, and it is the standard diagnostic for this purpose: Geirhos et al.~\cite{geirhos2020} recommend exactly such interpretability checks to distinguish a model that has learned the intended feature from one exploiting a correlated cue, and background-attention evidence of this kind established the Clever Hans reading of camera-trap~\cite{beery2018} and plant-disease~\cite{ahmad2023} classifiers.
 
-\paragraph{Protocol.} For each of five genera, a Leafsnap \emph{lab} image that the Custom CNN classifies correctly is paired with a Leafsnap \emph{field} image of the \emph{same genus} that it misclassifies. Holding the genus fixed means the label is identical across the pair, so any difference in where a model looks is attributable to capture conditions alone. All four models are then visualized on the same pairs, making the rows directly comparable. To summarise each heatmap with one number, we report \emph{centre attention}: the fraction of Grad-CAM mass falling in the central 50\% of the frame. Leaves are roughly centred in both Leafsnap domains, so a drop in this quantity indicates attention moving toward the background. It is a coarse proxy and is reported alongside the panels rather than as a standalone claim.
+\paragraph{Protocol.} For each of six genera --- \emph{Abies}, \emph{Acer}, \emph{Aesculus}, \emph{Ailanthus}, \emph{Amelanchier}, \emph{Asimina} --- a Leafsnap \emph{lab} image that the Custom CNN classifies correctly is paired with a Leafsnap \emph{field} image of the \emph{same genus} that it misclassifies. Holding the genus fixed means the label is identical across the pair, so any difference in where a model looks is attributable to capture conditions alone. All four models are then visualized on the same pairs, making the rows directly comparable. To summarise each heatmap with one number, we report \emph{centre attention}: the fraction of Grad-CAM mass falling in the central 50\% of the frame. Leaves are roughly centred in both Leafsnap domains, so a drop in this quantity indicates attention moving toward the border and background. It is a coarse geometric proxy and is reported alongside the panels rather than as a standalone claim.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{figures/fig_gradcam_acer.png}
-    \caption{Grad-CAM for genus \emph{Acer}: a lab image every model classifies correctly (left pair) beside a field image of the same genus (right pair). Rows are Custom CNN, ResNet50 FE, and ResNet50 FT. On the field image the Custom CNN's attention leaves the leaf entirely and settles on the background, and it predicts \emph{Ginkgo}; the fine-tuned model keeps its attention on the blade and predicts \emph{Acer} with confidence 1.00.}
-    \label{fig:gradcamacer}
+    \includegraphics[width=0.95\textwidth]{figures/fig_gradcam_asimina.png}
+    \caption{Grad-CAM for genus \emph{Asimina}: a lab image every model classifies correctly (left pair) beside a field image of the same genus (right pair). On the field image the Custom CNN's attention forms a ring around the leaf border rather than covering the blade, and it predicts \emph{Magnolia}; ResNet50 FT keeps a compact activation on the blade itself and predicts \emph{Asimina} with confidence 1.00.}
+    \label{fig:gradcamasimina}
 \end{figure}
 
-\paragraph{Findings.} Table~\ref{tab:gradcam} reports the aggregate over all five pairs.
+\paragraph{Findings.} Table~\ref{tab:gradcam} reports the aggregate over all six pairs.
 
 \begin{table}[H]
     \centering
-    \caption{Grad-CAM summary over five lab/field genus pairs. Pairs were chosen so the Custom CNN is correct on every lab image and wrong on every field image; the other models were not selected on and are evaluated on the same images.}
+    \caption{Grad-CAM summary over six lab/field genus pairs. Pairs were chosen so the Custom CNN is correct on every lab image and wrong on every field image; the other three models were not selected on and are evaluated on the same images.}
     \label{tab:gradcam}
-    \begin{tabular}{lcccc}
+    \begin{tabular}{lccccc}
         \toprule
-        & \multicolumn{2}{c}{Centre attention} & \multicolumn{2}{c}{Accuracy on these pairs} \\
-        \cmidrule(r){2-3}\cmidrule(l){4-5}
-        Model & lab & field & lab & field \\
+        & \multicolumn{3}{c}{Centre attention} & \multicolumn{2}{c}{Accuracy on these pairs} \\
+        \cmidrule(r){2-4}\cmidrule(l){5-6}
+        Model & lab & field & drift & lab & field \\
         \midrule
-        Custom CNN & 0.590 & \textbf{0.345} & 1.00 & \textbf{0.00} \\
-        Custom CNN v2 & 0.542 & 0.427 & 1.00 & 1.00 \\
-        ResNet50 FE & 0.693 & 0.609 & 0.80 & 0.60 \\
-        ResNet50 FT & 0.667 & \textbf{0.719} & 1.00 & \textbf{1.00} \\
+        Custom CNN & 0.567 & 0.338 & $\mathbf{-0.229}$ & 1.00 & \textbf{0.00} \\
+        Custom CNN v2 & 0.522 & 0.385 & $-0.137$ & 1.00 & 1.00 \\
+        ResNet50 FE & 0.710 & 0.595 & $-0.115$ & 0.83 & 0.50 \\
+        ResNet50 FT & 0.628 & 0.705 & $\mathbf{+0.076}$ & 1.00 & \textbf{1.00} \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-The prediction stated in Section~\ref{sec:domainshift} is confirmed for the weakest model and refuted for the strongest, which is the informative outcome. The Custom CNN loses 0.245 of its centre attention moving to field imagery --- the largest drift of any model --- and gets every one of these field images wrong. Figure~\ref{fig:gradcamacer} shows the failure concretely: on the field \emph{Acer} its heatmap abandons the leaf, concentrates on a background region, and the prediction flips to \emph{Ginkgo}. This is what reliance on capture conditions looks like.
+The prediction stated in Section~\ref{sec:domainshift} is confirmed for the weakest model and refuted for the strongest, which is the informative outcome. The Custom CNN loses $0.229$ of its centre attention moving to field imagery --- the largest drift of any model --- and gets every one of these field images wrong. Figure~\ref{fig:gradcamasimina} shows the failure mode concretely: on the field \emph{Asimina} its activation forms a ring following the leaf \emph{outline} and the surrounding background rather than covering the blade, and the prediction flips to \emph{Magnolia}. The same pattern appears for \emph{Acer}, where its attention leaves the leaf entirely and the prediction becomes \emph{Ginkgo}. This is what reliance on capture conditions looks like in practice.
 
-ResNet50 FT behaves in the opposite way. Its centre attention does not fall at all on field images ($0.667 \rightarrow 0.719$), and it classifies all five correctly despite these being images specifically selected as failures of another model. Custom CNN v2 sits between the two: its attention drifts somewhat ($0.542 \rightarrow 0.427$) but it still classifies all five correctly, consistent with augmentation buying robustness without fully eliminating condition sensitivity.
+ResNet50 FT behaves in the opposite way. Its centre attention does not fall at all on field images ($0.628 \rightarrow 0.705$, the only positive drift), and it classifies all six correctly despite these being images specifically selected as failures of another model. Custom CNN v2 sits between: its attention drifts ($0.522 \rightarrow 0.385$) yet it still classifies all six correctly --- consistent with augmentation buying decision robustness without fully stabilising where the model looks.
 
-The ordering of centre-attention drift --- Custom CNN $-0.245$, Custom CNN v2 $-0.115$, ResNet50 FE $-0.084$, ResNet50 FT $+0.052$ --- matches the ordering of the lab-to-field accuracy gaps in Table~\ref{tab:source} ($-17.5$, $-6.7$, $-7.1$, $-4.0$) in every position but the middle two, which are separated by less than half a point of accuracy. The saliency evidence therefore corroborates the accuracy decomposition rather than merely illustrating it: models with larger measured gaps really do move their attention off the leaf under field conditions.
+Critically, \textbf{the ordering of attention drift reproduces the ordering of the accuracy gaps exactly}. Drift runs $-0.229$, $-0.137$, $-0.115$, $+0.076$ for Custom CNN, Custom CNN v2, ResNet50 FE and ResNet50 FT; the corresponding lab-to-field accuracy gaps in Table~\ref{tab:source} are $-17.5$, $-6.7$, $-7.1$, $-4.0$ points. Both series place the plain scratch model worst by a wide margin, the two middle models close together, and fine-tuning alone as the model that does not degrade. The saliency evidence therefore corroborates the accuracy decomposition rather than merely illustrating it: models with larger measured gaps really do move their attention off the leaf under field conditions.
 
-\paragraph{Limitations.} Five genera is a small sample, chosen by one model's failures, and centre attention is a geometric proxy rather than a segmentation-based measure of leaf overlap. These panels support the mechanism; they do not establish it quantitatively. A larger study with leaf masks, reporting the fraction of Grad-CAM mass inside the true leaf region, is listed in Section~\ref{sec:futurework}.
+\paragraph{Limitations.} Six genera is a small sample, and the pairs are selected by one model's failures, so the Custom CNN's field accuracy of $0.00$ on this subset is by construction and carries no information --- only the \emph{other} models' behaviour on those images, and all four models' attention shifts, are evidence. Centre attention is furthermore a geometric proxy rather than a segmentation-based measure of leaf overlap; a leaf photographed off-centre would depress it without any shortcut being used. These panels support the mechanism; they do not establish it quantitatively. A larger study using leaf masks, reporting the fraction of Grad-CAM mass inside the true leaf region, is listed in Section~\ref{sec:futurework}.
 
 \subsection{Effect of Class Imbalance}
 \label{sec:imbalance}
@@ -909,7 +909,7 @@ This internship project establishes a practical pipeline for large-scale plant c
 
 Fine-tuned ResNet50 performs best (0.9849 top-1, 0.9747 macro F1) and converges fastest, confirming the expected advantage of transfer learning. Two results qualify that headline. Frozen ImageNet features (ResNet50 FE, 0.8737 macro F1) perform no better than a CNN trained from scratch (0.8730), so the advantage comes from adapting the representation rather than from pretraining as such; and a scratch model with a modern training recipe (Custom CNN v2, 0.9637) closes most of the remaining distance to fine-tuning without any pretrained weights.
 
-The central finding concerns generalization. Across the Leafsnap lab and field domains---the same genera under different capture conditions---every model loses accuracy, by 17.5, 7.1, 6.7 and 4.0 points respectively. The gap is universal, so condition sensitivity is a property of the task; it is also compressible, shrinking as representations improve, with augmentation substituting for pretraining on this axis specifically. Because errors rarely cross between the two source datasets, headline 76-class accuracy partly measures source separation rather than plant recognition, and the source-conditioned results should be quoted when the question is how well a model recognizes plants. Grad-CAM analysis on matched lab/field pairs corroborates the mechanism: the weakest model's attention leaves the leaf entirely on field images it misclassifies, while the fine-tuned model's does not. A further finding is that class imbalance, despite a striking 250:1 ratio, costs at most 0.026 macro-F1 points of head-to-tail difference --- an order of magnitude less than the domain shift measured on the same test set.
+The central finding concerns generalization. Across the Leafsnap lab and field domains---the same genera under different capture conditions---every model loses accuracy, by 17.5, 7.1, 6.7 and 4.0 points respectively. The gap is universal, so condition sensitivity is a property of the task; it is also compressible, shrinking as representations improve, with augmentation substituting for pretraining on this axis specifically. Because errors rarely cross between the two source datasets, headline 76-class accuracy partly measures source separation rather than plant recognition, and the source-conditioned results should be quoted when the question is how well a model recognizes plants. Grad-CAM analysis on six matched lab/field genus pairs corroborates the mechanism, and does so in the strongest available form: the ordering of attention drift across the four models reproduces the ordering of their accuracy gaps exactly, with the plain scratch model losing 0.229 of its centre attention on field images while the fine-tuned model loses none. A further finding is that class imbalance, despite a striking 250:1 ratio, costs at most 0.026 macro-F1 points of head-to-tail difference --- an order of magnitude less than the domain shift measured on the same test set.
 
 \clearpage
 \renewcommand{\refname}{REFERENCES}

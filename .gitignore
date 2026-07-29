@@ -14,6 +14,7 @@ smoke_test_outputs/
 # Downloaded Kaggle result bundles and local weights (regenerated, not tracked)
 analyze/
 ax/
+Grad-cam/
 notebooks/trained/
 summary.md
 docs/reports/report_draft_backup_*.tex
