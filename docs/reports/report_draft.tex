@@ -26,16 +26,17 @@
     pdfauthor={Bui Duc Thang}
 }
 
-\setstretch{1.3}
+\setstretch{1.20}
 
 % Top-level sections carry their own roman numeral in the title ("I/ ..."),
 % so suppress LaTeX's own section counter but keep numbered subsections
 % (1.1, 1.2, ...) as in the reference theses.
 \usepackage{titlesec}
-% Section titles already carry their own numeral ("I/ INTRODUCTION"), so the
-% counter must print nothing -- both in the body and in the table of contents.
-\renewcommand{\thesection}{}
-\titleformat{\section}{\Large\bfseries}{}{0pt}{}
+% Sections are numbered "I/", "II/", ... The counter must produce that string
+% itself rather than being blanked with the numeral typed into each title:
+% \ref{sec:...} prints \thesection, so an empty counter renders as "Section ."
+\renewcommand{\thesection}{\Roman{section}/}
+\titleformat{\section}{\Large\bfseries}{\thesection}{0.5em}{}
 \titlespacing*{\section}{0pt}{2.2em}{1.2em}
 \renewcommand{\thesubsection}{\arabic{subsection}}
 \renewcommand{\thesubsubsection}{\thesubsection.\arabic{subsubsection}}
@@ -120,16 +121,9 @@ I, Prof.\ Dr.\ Nguyen Duc Dung (Supervisor), certify that the Bachelor Thesis en
 
 % ============================ TABLE OF CONTENTS ============================
 \renewcommand{\contentsname}{TABLE OF CONTENTS}
+% subsubsections would spill the contents onto a third page for two lines
+\setcounter{tocdepth}{2}
 \tableofcontents
-\clearpage
-
-% ============================ ACKNOWLEDGEMENTS ============================
-\section*{ACKNOWLEDGEMENTS}
-\addcontentsline{toc}{section}{ACKNOWLEDGEMENTS}
-The author wishes to express sincere gratitude to Prof.\ Dr.\ Nguyen Duc Dung for his guidance, constructive feedback, and continued support throughout the course of this work. His expertise and insightful comments were invaluable in shaping both the technical direction and the quality of this thesis.
-
-The author also thanks the Department of Information and Communication Technology, Data Science programme, at the University of Science and Technology of Hanoi (USTH) for providing the academic environment and resources that made this research possible.
-
 \clearpage
 
 % ========================= LIST OF ABBREVIATIONS =========================
@@ -162,7 +156,7 @@ The author also thanks the Department of Information and Communication Technolog
 \renewcommand{\listtablename}{LIST OF TABLES}
 \addcontentsline{toc}{section}{LIST OF TABLES}
 \listoftables
-\clearpage
+\vspace{1.5em}
 
 % ============================ LIST OF FIGURES ============================
 \renewcommand{\listfigurename}{LIST OF FIGURES}
@@ -182,7 +176,7 @@ Four models are trained and evaluated on an identical deterministic split. Fine-
 \clearpage
 \pagenumbering{arabic}
 
-\section{I/ INTRODUCTION}
+\section{INTRODUCTION}
 \label{sec:intro}
 \subsection{Background}
 Plant image classification assigns a photograph of a plant --- most often a leaf --- to a botanical or agricultural category. The task is the basis for several practical systems: crop advisory tools that flag disease from a farmer's phone camera, biodiversity surveys that would otherwise require expert botanists, and citizen-science applications where non-specialists identify what they encounter outdoors.
@@ -244,21 +238,34 @@ Beery et al.~\cite{beery2018} give a clear example. A classifier that recognises
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.9\textwidth]{figures/fig_beery_cows.png}
+    \includegraphics[width=0.78\textwidth]{figures/fig_beery_cows.png}
     \caption{Context dependence in recognition, reproduced from Beery et al.~\cite{beery2018}. A cow in a typical pasture setting (A) is classified correctly; the same animal in unusual contexts (B, C) is missed or mislabelled.}
     \label{fig:cows}
 \end{figure}
 
-Plant pathology supplies the closest and most warning warning case. Mohanty et al.~\cite{mohanty2016} trained AlexNet and GoogLeNet on 54{,}306 PlantVillage images across 38 crop--disease categories and reported \textbf{99.35\%} accuracy on a held-out test set---a result widely cited as evidence that the problem is solved. The same paper reports that on images collected under different conditions, accuracy fell to roughly \textbf{31\%}. The authors attribute this to the dataset's constraints: single leaves, facing up, on a homogeneous background. Subsequent work has confirmed and sharpened the diagnosis. Ahmad et al.~\cite{ahmad2023} found generalization dropping to 33.27\% on field-acquired images from contrasting conditions, and reported that a model given only \emph{eight background pixels} from PlantVillage images still reached 49.0\% accuracy against a 2.6\% random baseline---direct evidence that the background alone carries most of the label information.
+Plant pathology supplies the closest and most useful warning case. Mohanty et al.~\cite{mohanty2016} trained AlexNet and GoogLeNet on 54{,}306 PlantVillage images across 38 crop--disease categories and reported \textbf{99.35\%} accuracy on a held-out test set---a result widely cited as evidence that the problem is solved. The same paper reports that on images collected under different conditions, accuracy fell to roughly \textbf{31\%}. The authors attribute this to the dataset's constraints: single leaves, facing up, on a homogeneous background. Subsequent work has confirmed and sharpened the diagnosis. Ahmad et al.~\cite{ahmad2023} found generalization dropping to 33.27\% on field-acquired images from contrasting conditions, and reported that a model given only \emph{eight background pixels} from PlantVillage images still reached 49.0\% accuracy against a 2.6\% random baseline---direct evidence that the background alone carries most of the label information.
 
 Leafsnap exhibits the same asymmetry internally, which is what makes it useful here. Its lab images are controlled backlit and front-lit captures, while its field images are mobile-phone photographs containing blur, shadow, occlusion, and cluttered vegetation. Systems evaluated across both report markedly worse performance on the field split---Barr\'e et al.~\cite{barre2017} note that Leafsnap Field is the one benchmark in their comparison to fall well below 90\% first-prediction accuracy, at 64.9\%. Large-scale in-the-wild benchmarks such as PlantCLEF~\cite{goeau2017} were constructed partly in response to this gap between curated and realistic imagery.
 
 Two mitigations show up again in this literature and both are tested in this report. The first is transfer learning, on the argument that representations learned from millions of diverse natural images depend less on any single dataset's acquisition quirks~\cite{yosinski2014}. The second is aggressive data augmentation, which perturbs exactly the unwanted variations---lighting, framing, occlusion---that distinguish controlled from field capture, and which has been shown to improve robustness under distribution shift~\cite{hendrycks2020,zhang2018,yun2019}. Whether either can stand in for the other is an open question that Section~\ref{sec:discussion} addresses empirically.
 
 \subsubsection{Research Gap and Motivation}
-The scratch-versus-pretrained comparison is well established, and its qualitative outcome---pretrained wins on limited data---is largely expected. The contribution of this report is therefore not to re-confirm that outcome but to interrogate \emph{what} is being learned. Merging a uniformly captured source (PlantVillage) with a mixed lab/field source (Leafsnap) creates a dataset in which acquisition conditions (resolution, background, lighting) are partly confounded with the labels. A model can score highly by separating the two sources rather than by recognizing plants, which would inflate headline accuracy without demonstrating morphological understanding. The same property, used as a tool, becomes a probe: the Leafsnap lab and field domains cover the \emph{same} genera, so the lab-to-field accuracy gap measures a model's reliance on capture conditions independently of the source-separation confound. This motivates the generalization-centred framing of the experiments and the use of macro F1 rather than accuracy as the primary metric under the observed $\sim$250:1 imbalance.
+The literature above leaves a specific gap. The scratch-versus-pretrained outcome is well established, so re-confirming it is not a contribution; what the merged dataset makes newly measurable is \emph{what} the models learn. Because the Leafsnap lab and field domains cover the same genera, the accuracy gap between them isolates reliance on capture conditions from the source-separation confound described in Section~\ref{sec:intro} --- a probe unavailable in any single-source benchmark. This is why the experiments are framed around generalization and why macro F1, not accuracy, is the primary metric under the observed $\sim$250:1 imbalance.
 
-\section{II/ OBJECTIVES}
+\subsection{Research Questions}
+\label{sec:rqs}
+This thesis addresses four research questions. The first two concern the standard comparison; the last two concern what the models have actually learned, which is where the contribution lies.
+
+\begin{description}[leftmargin=1.6cm,style=nextline]
+    \item[\textbf{RQ1}] Does pretraining outperform training from scratch on this 76-class task, and by how much under macro F1?
+    \item[\textbf{RQ2}] Is any advantage due to the pretrained \emph{representation} itself, or to \emph{adapting} it to leaf imagery?
+    \item[\textbf{RQ3}] How much accuracy does each model lose when capture conditions change from lab to field, with the label space held fixed?
+    \item[\textbf{RQ4}] Does headline 76-class accuracy measure plant recognition, or partly the separability of the two acquisition sources?
+\end{description}
+
+\noindent Section~\ref{sec:hypotheses} states the hypothesis attached to each question, Section~\ref{sec:methods} describes the apparatus that tests them, and Section~\ref{sec:results} answers them against the measurements.
+
+\section{OBJECTIVES}
 \label{sec:objectives}
 The objectives of this project are:
 \begin{itemize}
@@ -268,15 +275,21 @@ The objectives of this project are:
     \item to assess \emph{generalization across acquisition conditions} (lab versus field) and to characterize what visual cues the models rely on.
 \end{itemize}
 
-\noindent These objectives translate into four research questions, answered in Section~\ref{sec:results}:
-\begin{description}[leftmargin=2.2cm,style=nextline]
-    \item[\textbf{RQ1}] Does pretraining outperform training from scratch on this 76-class task, and by how much under macro F1?
-    \item[\textbf{RQ2}] Is any advantage due to the pretrained \emph{representation} itself, or to \emph{adapting} it to leaf imagery?
-    \item[\textbf{RQ3}] How much accuracy does each model lose when capture conditions change from lab to field, with the label space held fixed?
-    \item[\textbf{RQ4}] Does headline 76-class accuracy measure plant recognition, or partly the separability of the two acquisition sources?
+\subsection{Hypotheses}
+\label{sec:hypotheses}
+Each research question of Section~\ref{sec:intro} carries a hypothesis stated before the experiments were run, so that the results can confirm or refute rather than merely describe. Every hypothesis is falsifiable against the measurements reported in Section~\ref{sec:results}.
+
+\begin{description}[leftmargin=1.6cm,style=nextline]
+    \item[\textbf{H1}] \emph{Pretrained models outperform scratch-trained models under macro F1.} Refuted if a scratch model matches or exceeds a pretrained one. (RQ1)
+    \item[\textbf{H2}] \emph{The advantage comes from adapting the pretrained representation, not from possessing it.} This predicts a large gap between fine-tuning and feature extraction, and a small one between feature extraction and training from scratch. Refuted if frozen features clearly beat a scratch model. (RQ2)
+    \item[\textbf{H3}] \emph{Every model loses accuracy from lab to field, and the loss shrinks as the representation improves.} Refuted if any model is unaffected by the domain change, or if the ranking of gaps does not follow the ranking of overall performance. (RQ3)
+    \item[\textbf{H4}] \emph{Headline 76-class accuracy partly measures source separation rather than plant recognition.} This predicts that errors rarely cross between PlantVillage crops and Leafsnap genera. Refuted if cross-source confusions occur at the rate chance would predict. (RQ4)
+    \item[\textbf{H5}] \emph{Saliency drifts away from the leaf on field images for models with larger lab-to-field gaps.} This is the causal claim behind H3; it is tested with Grad-CAM in Section~\ref{sec:gradcamresults} and is refuted if attention stays leaf-centred even on misclassified field images.
 \end{description}
 
-\section{III/ MATERIALS AND METHODS}
+Section~\ref{sec:discussion} returns to each hypothesis with the evidence for and against it. Two are not fully supported, which is reported as such.
+
+\section{MATERIALS AND METHODS}
 \label{sec:methods}
 This section describes the data and the experimental setup: how the two source datasets were merged into a single 76-class label space, how the deterministic split was constructed, the four model configurations compared, and the training and evaluation protocol. The design priority throughout is that every reported number be rebuildable from the saved weights and the split seed alone.
 
@@ -288,7 +301,7 @@ The local PlantVillage subset used in this project contains 15 folders and 20{,}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.78\textwidth]{figures/fig_plantvillage.png}
+    \includegraphics[width=0.62\textwidth]{figures/fig_plantvillage.png}
     \caption{Example leaf images from the PlantVillage dataset, one per crop--disease pair, reproduced from Mohanty et al.~\cite{mohanty2016}. Note the uniform background and consistent framing across every class --- the property that makes this source trivially separable from Leafsnap imagery.}
     \label{fig:plantvillage}
 \end{figure}
@@ -298,7 +311,7 @@ Leafsnap contributes both lab and field images. The dataset contains 185 species
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.92\textwidth]{figures/fig_leafsnap.png}
+    \includegraphics[width=0.82\textwidth]{figures/fig_leafsnap.png}
     \caption{Leafsnap lab images (leftmost column of each block) and their segmentation stages, reproduced from Kumar et al.~\cite{kumar2012}. Even under lab conditions, shadows and specular highlights corrupt segmentation; field images compound these effects with natural backgrounds.}
     \label{fig:leafsnap}
 \end{figure}
@@ -334,26 +347,7 @@ The merged label space is severely long-tailed, and the shape of that tail shape
 
 Three properties matter for the rest of this thesis. First, the imbalance ratio is roughly \textbf{250:1} --- Tomato has 16{,}011 images (31.1\% of the dataset) against 64 for Toona --- so a classifier that simply predicts Tomato scores about 31\% accuracy while recognising nothing. Second, the tail is not a handful of rare classes but the \emph{majority} of the label space: \textbf{45 of 76 classes} fall below 300 images and the median class holds only 240. Third, the imbalance is correlated with the source: the three PlantVillage crops account for 40.1\% of all images while contributing 3 of 76 classes, while the 73 Leafsnap genera share the remaining 59.9\%.
 
-Table~\ref{tab:classdist} lists the extremes.
-
-\begin{table}[H]
-    \centering
-    \caption{Largest and smallest classes in the merged dataset.}
-    \label{tab:classdist}
-    \begin{tabular}{llr@{\hskip 2.2em}llr}
-        \toprule
-        \multicolumn{3}{c}{Five largest} & \multicolumn{3}{c}{Five smallest} \\
-        \cmidrule(r){1-3}\cmidrule(l){4-6}
-        Class & Source & Images & Class & Source & Images \\
-        \midrule
-        Tomato  & PlantVillage & 16{,}011 & Toona     & Leafsnap & 64 \\
-        Quercus & Leafsnap     & 3{,}267  & Corylus   & Leafsnap & 84 \\
-        Pinus   & Leafsnap     & 2{,}906  & Syringa   & Leafsnap & 98 \\
-        Pepper  & PlantVillage & 2{,}475  & Juniperus & Leafsnap & 113 \\
-        Potato  & PlantVillage & 2{,}152  & Evodia    & Leafsnap & 115 \\
-        \bottomrule
-    \end{tabular}
-\end{table}
+For reference, the five largest classes are Tomato (16{,}011), Quercus (3{,}267), Pinus (2{,}906), Pepper (2{,}475) and Potato (2{,}152); the five smallest are Toona (64), Corylus (84), Syringa (98), Juniperus (113) and Evodia (115). All five of the smallest are Leafsnap genera.
 
 These three properties are the reason macro F1 rather than accuracy is the primary metric (Section~\ref{sec:methods}), the reason class-balanced and focal losses are provided as training options, and --- as the per-class results in Section~\ref{sec:results} confirm --- the reason the weakest classes are consistently low-support tree genera rather than crops.
 
@@ -366,7 +360,7 @@ Figure~\ref{fig:pipeline} shows the end-to-end workflow. The deterministic split
     % Absolute coordinates throughout: relative placement against a *coordinate*
     % (rather than a node) measures from that point and lets wide boxes overlap
     % their neighbours, which is what previously collided here.
-    \begin{tikzpicture}[
+    \begin{tikzpicture}[scale=0.92, transform shape,
         box/.style={draw, rounded corners=2pt, align=center, font=\scriptsize,
                     minimum height=9mm, text width=25mm, inner xsep=2pt},
         src/.style={box, fill=blue!8},
@@ -480,7 +474,7 @@ The ReLU keeps only regions with a positive influence on the class. The method i
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{figures/fig_gradcam.png}
+    \includegraphics[width=0.88\textwidth]{figures/fig_gradcam.png}
     \caption{Grad-CAM localisation, reproduced from Selvaraju et al.~\cite{selvaraju2017}. From the same input image, the method highlights the cat (top, c) or the dog (bottom, i) depending on the target class, showing that the heatmaps reflect class evidence rather than generic saliency.}
     \label{fig:gradcam}
 \end{figure}
@@ -496,7 +490,7 @@ The custom CNN is used as the from-scratch baseline. It is intentionally simpler
 \begin{figure}[H]
     \centering
     % Absolute coordinates throughout, so no box can drift into a neighbour.
-    \begin{tikzpicture}[
+    \begin{tikzpicture}[scale=0.92, transform shape,
         blk/.style={draw, rounded corners=2pt, align=center, font=\scriptsize,
                     minimum height=9.5mm, text width=20mm, inner xsep=1pt, fill=blue!7},
         pool/.style={blk, fill=gray!10},
@@ -570,7 +564,7 @@ To test whether a stronger from-scratch design narrows the gap to pretrained mod
 \begin{figure}[H]
     \centering
     % Absolute coordinates; the fold is routed through the gutter between rows.
-    \begin{tikzpicture}[
+    \begin{tikzpicture}[scale=0.92, transform shape,
         blk/.style={draw, rounded corners=2pt, align=center, font=\scriptsize,
                     minimum height=11mm, text width=21mm, inner xsep=1pt, fill=blue!7},
         pool/.style={blk, fill=gray!10},
@@ -798,16 +792,16 @@ Four models were trained on the identical split described in Section~\ref{sec:me
 
 \begin{table}[H]
     \centering
-    \caption{Training-run summary. ``Epochs to $0.80$'' is the first epoch whose validation macro F1 reached $0.80$, a convergence-speed proxy that is comparable across models.}
+    \caption{Training-run summary. ``Ep.\ to $0.80$'' is the first epoch whose validation macro F1 reached $0.80$, a convergence-speed proxy comparable across models. The overfit gap is final training macro F1 minus final validation macro F1; negative values mean validation scored \emph{above} training.}
     \label{tab:runsummary}
-    \begin{tabular}{lccccc}
+    \begin{tabular}{lcccccc}
         \toprule
-        Model & Epochs run & Epoch 1 val.\ F1 & Epochs to $0.80$ & Best epoch & Best val.\ F1 \\
+        Model & Epochs & Ep.\ 1 F1 & Ep.\ to $0.80$ & Best ep. & Best val.\ F1 & Overfit gap \\
         \midrule
-        Custom CNN & 50 & 0.089 & 30 & 49 & 0.8711 \\
-        Custom CNN v2 & 50 & 0.099 & 16 & 48 & 0.9627 \\
-        ResNet50 FE & 29 & 0.606 & 4 & 22 & 0.8717 \\
-        ResNet50 FT & 23 & \textbf{0.825} & \textbf{1} & 19 & \textbf{0.9785} \\
+        Custom CNN & 50 & 0.089 & 30 & 49 & 0.8711 & $-$0.044 \\
+        Custom CNN v2 & 50 & 0.099 & 16 & 48 & 0.9627 & $-$0.241 \\
+        ResNet50 FE & 29 & 0.606 & 4 & 22 & 0.8717 & $-$0.048 \\
+        ResNet50 FT & 23 & \textbf{0.825} & \textbf{1} & 19 & \textbf{0.9785} & $+$0.013 \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -832,7 +826,7 @@ The fourth run tests whether the scratch baseline's weakness is inherent to trai
 
 It reaches $0.80$ validation macro F1 by epoch 16, roughly twice as fast as the plain baseline, and finishes at $0.9627$ --- about 9 macro-F1 points above both the scratch baseline and feature extraction, and within 1.6 points of fine-tuning. Like Experiment 1 it is still improving at the budget limit. The practical implication is that on a dataset of this size, most of the advantage usually attributed to transfer learning can be recovered by training methodology alone.
 
-\section{IV/ RESULTS AND DISCUSSION}
+\section{RESULTS AND DISCUSSION}
 \label{sec:results}
 This section reports the four models' test-set performance, decomposes it by acquisition source to answer the generalization question, and interprets both against the research questions of Section~
 ef{sec:objectives}.
@@ -880,38 +874,25 @@ Table~\ref{tab:source} is the key result for the generalization question. For ea
 \end{table}
 
 \subsection{Training Curves}
-Table~\ref{tab:convergence} summarizes convergence for each model. The two scratch models ran the full 50-epoch budget; both pretrained models stopped earlier under macro-F1 early stopping, at 29 and 23 epochs respectively.
-
-\begin{table}[H]
-    \centering
-    \caption{Convergence behaviour. The overfit gap is final training macro F1 minus final validation macro F1; negative values mean validation scored \emph{above} training.}
-    \label{tab:convergence}
-    \begin{tabular}{lccccc}
-        \toprule
-        Model & Epochs & Best epoch & Best val.\ F1 & Final train F1 & Overfit gap \\
-        \midrule
-        Custom CNN & 50 & 49 & 0.8711 & 0.7991 & $-$0.044 \\
-        Custom CNN v2 & 50 & 48 & 0.9627 & 0.7218 & $-$0.241 \\
-        ResNet50 FE & 29 & 22 & 0.8717 & 0.8112 & $-$0.048 \\
-        ResNet50 FT & 23 & 19 & \textbf{0.9785} & 0.9863 & $+$0.013 \\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
-Two features of Table~\ref{tab:convergence} deserve comment. First, \textbf{convergence speed scales with transfer}: ResNet50 FT reaches its best validation macro F1 at epoch 19 and a higher score than either scratch model attains in 50 epochs, which is the expected benefit of reusing ImageNet features. Second, and less obvious, \textbf{three of the four models show a negative overfit gap}---validation macro F1 exceeds training macro F1---most dramatically for Custom CNN v2 ($-0.241$). This is not a data leak. Training macro F1 is computed on batches distorted by the Tier-1 augmentation stack (MixUp $\alpha=0.2$, CutMix $\alpha=1.0$, label smoothing $0.1$), while validation is measured on clean images. MixUp and CutMix in particular produce blended labels on which a hard-label F1 is consistently pessimistic, so the training figure understates the model's real fit. ResNet50 FT, which converged before augmentation noise dominated, is the only model with a conventional positive gap---and even there the gap is small ($+0.013$), indicating none of the models is meaningfully overfitting.
+Two features of Table~\ref{tab:runsummary} deserve comment. First, \textbf{convergence speed scales with transfer}: ResNet50 FT reaches its best validation macro F1 at epoch 19 and a higher score than either scratch model attains in 50 epochs, which is the expected benefit of reusing ImageNet features. Second, and less obvious, \textbf{three of the four models show a negative overfit gap}---validation macro F1 exceeds training macro F1---most dramatically for Custom CNN v2 ($-0.241$). This is not a data leak. Training macro F1 is computed on batches distorted by the Tier-1 augmentation stack (MixUp $\alpha=0.2$, CutMix $\alpha=1.0$, label smoothing $0.1$), while validation is measured on clean images. MixUp and CutMix in particular produce blended labels on which a hard-label F1 is consistently pessimistic, so the training figure understates the model's real fit. ResNet50 FT, which converged before augmentation noise dominated, is the only model with a conventional positive gap---and even there the gap is small ($+0.013$), indicating none of the models is meaningfully overfitting.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{figures/curve_custom_cnn_v2.png}
-    \caption{Custom CNN v2 training curves. The persistent gap between the training and validation traces is the augmentation artifact discussed above, not overfitting in reverse.}
-    \label{fig:curve_cnnv2}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{figures/curve_resnet50_ft.png}
-    \caption{ResNet50 fine-tuning curves. Convergence is rapid and early stopping halts training at epoch 23.}
-    \label{fig:curve_ft}
+    \begin{subfigure}{\textwidth}
+        \centering
+        \includegraphics[width=0.92\textwidth]{figures/curve_custom_cnn_v2.png}
+        \caption{Custom CNN v2. The persistent gap between the training and validation traces is the augmentation artifact discussed above, not overfitting in reverse.}
+        \label{fig:curve_cnnv2}
+    \end{subfigure}
+    \\[0.7em]
+    \begin{subfigure}{\textwidth}
+        \centering
+        \includegraphics[width=0.92\textwidth]{figures/curve_resnet50_ft.png}
+        \caption{ResNet50 fine-tuning. Convergence is rapid and early stopping halts training at epoch 23.}
+        \label{fig:curve_ft}
+    \end{subfigure}
+    \caption{Training curves for the two best models.}
+    \label{fig:curves}
 \end{figure}
 
 \subsection{Confusion Matrix and Per-Class Analysis}
@@ -922,7 +903,7 @@ The weakest classes are consistently \emph{tree genera with few training images}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.8\textwidth]{figures/f1_vs_size_custom_cnn.png}
+    \includegraphics[width=0.66\textwidth]{figures/f1_vs_size_custom_cnn.png}
     \caption{Per-class F1 versus training-set size, Custom CNN. Low-support genera dominate the low-F1 region.}
     \label{fig:f1size}
 \end{figure}
@@ -942,7 +923,7 @@ Accuracy decomposition establishes \emph{that} the models degrade from lab to fi
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.95\textwidth]{figures/fig_gradcam_asimina.png}
+    \includegraphics[width=0.78\textwidth]{figures/fig_gradcam_asimina.png}
     \caption{Grad-CAM for genus \emph{Asimina}: a lab image every model classifies correctly (left pair) beside a field image of the same genus (right pair). On the field image the Custom CNN's attention forms a ring around the leaf border rather than covering the blade, and it predicts \emph{Magnolia}; ResNet50 FT keeps a compact activation on the blade itself and predicts \emph{Asimina} with confidence 1.00.}
     \label{fig:gradcamasimina}
 \end{figure}
@@ -974,6 +955,43 @@ ResNet50 FT behaves in the opposite way. Its centre attention does not fall at a
 Critically, \textbf{the ranking of attention drift reproduces the ranking of the accuracy gaps exactly}. Drift runs $-0.229$, $-0.137$, $-0.115$, $+0.076$ for Custom CNN, Custom CNN v2, ResNet50 FE and ResNet50 FT; the corresponding lab-to-field accuracy gaps in Table~\ref{tab:source} are $-17.5$, $-6.7$, $-7.1$, $-4.0$ points. Both series place the plain scratch model worst by a wide margin, the two middle models close together, and fine-tuning alone as the model that does not degrade. The saliency evidence therefore supports the accuracy decomposition rather than merely illustrating it: models with larger measured gaps really do move their attention off the leaf under field conditions.
 
 \paragraph{Limitations.} Six genera is a small sample, and the pairs are selected by one model's failures, so the Custom CNN's field accuracy of $0.00$ on this subset is by construction and carries no information --- only the \emph{other} models' behaviour on those images, and all four models' attention shifts, are evidence. Centre attention is furthermore a rough positional measure rather than a segmentation-based measure of leaf overlap; a leaf photographed off-centre would depress it without any shortcut being used. These panels support the mechanism; they do not establish it quantitatively. A larger study using leaf masks, reporting the fraction of Grad-CAM mass inside the true leaf region, is listed in Section~\ref{sec:futurework}.
+
+\subsection{Statistical Significance}
+\label{sec:significance}
+The differences in Table~\ref{tab:main} are point estimates from a single run, so before interpreting them it is worth asking which are large enough to be distinguished from sampling noise. Because all four models were evaluated on the \emph{identical} held-out split, their predictions are paired image by image, which is exactly the situation McNemar's test is designed for.
+
+For each pair of models, let $b$ be the number of test images the first model classifies correctly and the second does not, and $c$ the reverse. Images both models get right or both get wrong carry no information about their difference and are discarded. Under the null hypothesis that the two models are equally accurate,
+\begin{equation}
+    \chi^2 = \frac{(|b - c| - 1)^2}{b + c}
+    \label{eq:mcnemar}
+\end{equation}
+follows a $\chi^2$ distribution with one degree of freedom, the $-1$ being the continuity correction. Table~\ref{tab:mcnemar} reports this alongside a bootstrap confidence interval on the paired accuracy difference (2{,}000 resamples of the 7{,}763 test images, seed 42).
+
+\begin{table}[H]
+    \centering
+    \caption{Pairwise McNemar tests and bootstrap 95\% confidence intervals on the accuracy difference. $b$ and $c$ count the images on which the two models disagree. The interval is for (second $-$ first).}
+    \label{tab:mcnemar}
+    \begin{tabular}{lrrrrl}
+        \toprule
+        Comparison & $b$ & $c$ & $\chi^2$ & $p$ & 95\% CI on difference \\
+        \midrule
+        Custom CNN vs ResNet50 FE & 396 & 353 & 2.4 & \textbf{0.125} & $[-0.012, +0.001]$ \\
+        Custom CNN vs Custom CNN v2 & 171 & 507 & 165.5 & $<10^{-37}$ & $[+0.037, +0.050]$ \\
+        Custom CNN v2 vs ResNet50 FT & 86 & 237 & 69.7 & $<10^{-16}$ & $[+0.015, +0.024]$ \\
+        Custom CNN vs ResNet50 FT & 64 & 551 & 384.1 & $<10^{-84}$ & $[+0.057, +0.069]$ \\
+        Custom CNN v2 vs ResNet50 FE & 568 & 189 & 188.8 & $<10^{-42}$ & $[-0.056, -0.042]$ \\
+        ResNet50 FE vs ResNet50 FT & 45 & 575 & 451.4 & $<10^{-99}$ & $[+0.062, +0.074]$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Bootstrap intervals on the individual accuracies are $[0.9163, 0.9281]$ for the Custom CNN, $[0.9612, 0.9696]$ for Custom CNN v2, $[0.9103, 0.9225]$ for ResNet50 FE, and $[0.9820, 0.9875]$ for ResNet50 FT.
+
+One result in this table matters more than the rest. \textbf{Custom CNN versus ResNet50 FE is the only comparison that fails to reach significance} ($p = 0.125$), and its confidence interval $[-0.012, +0.001]$ contains zero. The two models disagree on 749 images, but almost symmetrically --- 396 one way against 353 the other. The near-identical macro F1 scores reported in Section~\ref{sec:results} ($0.8730$ versus $0.8737$) are therefore not a coincidence of rounding: on this test set the two models are statistically indistinguishable. This is the central evidence for H2, and it is far stronger than a comparison of point estimates alone would be.
+
+Every other pair separates decisively, with $p$ below $10^{-16}$ throughout. In particular ResNet50 FT beats Custom CNN v2 by $+0.0195$ accuracy with an interval of $[+0.015, +0.024]$ --- a real difference, but a modest one for a model that carries ImageNet pretraining against one trained from scratch.
+
+\paragraph{What this does not establish.} These tests quantify uncertainty from the finite test set, not from training. All four models come from a single seed, so run-to-run variation is unmeasured and a significant McNemar result does not guarantee the ordering would survive retraining with a different initialization. Multi-seed replication is listed in Section~\ref{sec:futurework}. No correction for multiple comparisons is applied; with six tests at $\alpha = 0.05$ a Bonferroni threshold would be $0.0083$, which changes nothing here since the five significant results are below $10^{-16}$ and the sixth is above $0.05$ either way.
 
 \subsection{Effect of Class Imbalance}
 \label{sec:imbalance}
@@ -1050,27 +1068,49 @@ Third, and most directly, the same models that appear near-perfect overall lose 
 
 The honest reading is that headline accuracy on this merged dataset overstates plant-recognition ability, and that the source-conditioned numbers in Table~\ref{tab:source}---particularly field accuracy---are the figures that should be quoted when the question is whether a model recognizes plants. This is why the report treats the lab-to-field gap, not top-1 accuracy, as its primary result. Grad-CAM would test the proposed mechanism directly; until it is run, the claim rests on the accuracy decomposition rather than on evidence about what the models attend to.
 
-\section{V/ CONCLUSION \& PERSPECTIVE}
+\subsubsection{Verdict on each hypothesis}
+Table~\ref{tab:hypotheses} closes the loop with Section~\ref{sec:hypotheses}. Two of the five hypotheses are only partly supported, and saying so is more useful than reporting a clean sweep.
+
+\begin{table}[H]
+    \centering
+    \caption{Each hypothesis against the evidence. ``Partly'' means the prediction held in one direction but not another, not that the result is ambiguous.}
+    \label{tab:hypotheses}
+    \begin{tabular}{@{}p{0.8cm}p{2.1cm}p{10.4cm}@{}}
+        \toprule
+        & Verdict & Evidence \\
+        \midrule
+        H1 & \textbf{Partly} & Fine-tuning wins decisively ($0.9747$ vs $0.8730$ macro F1, $p<10^{-84}$), but \emph{frozen} pretrained features do not: ResNet50 FE versus the scratch baseline is statistically indistinguishable ($p = 0.125$). ``Pretrained beats scratch'' is therefore true only of fine-tuning. \\
+        H2 & \textbf{Supported} & The prediction was a large FT--FE gap and a small FE--scratch gap; measured, these are $+0.068$ accuracy ($p<10^{-99}$) and $-0.006$ ($p = 0.125$). Adaptation, not possession, carries the benefit. \\
+        H3 & \textbf{Supported} & All four models degrade ($-17.5$, $-7.1$, $-6.7$, $-4.0$ points) and the gap shrinks as overall performance improves. \\
+        H4 & \textbf{Supported} & Confusions stay within the crop group or within the tree-genus group; cross-source errors are rare, far below what chance would give over 76 classes. \\
+        H5 & \textbf{Partly} & Attention drift orders exactly as the accuracy gaps do, and the weakest model's saliency leaves the leaf on field images it misclassifies. But the evidence covers six genera with a positional proxy rather than leaf masks, so it supports the mechanism without establishing it quantitatively. \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{CONCLUSION \& PERSPECTIVE}
 \label{sec:conclusion}
 \subsection{Limitations and Validity Threats}
 \begin{itemize}
     \item \textbf{Source confound.} PlantVillage and Leafsnap differ consistently in resolution and background, so the two sources are partly separable without recognizing plants; headline accuracy across all 76 classes should be read together with the source-conditioned analysis (Section~\ref{sec:domainshift}), not on its own.
-    \item \textbf{Mixed label granularity.} The label space combines crop-level (PlantVillage) and genus-level (Leafsnap) categories rather than uniform botanical species, so this is not species-level identification.
+    \item \textbf{Mixed taxonomic levels --- the most serious threat to construct validity.} The 76 classes are not drawn from one rank of the botanical hierarchy. Three are \emph{crops} (Pepper, Potato, Tomato), and 73 are tree \emph{genera} (Acer, Quercus, Pinus). A genus spans many species with visibly different leaves, whereas a crop label here covers one cultivated species photographed under a single protocol, so the two kinds of class are not equally hard by construction: within-class variation is far larger for the genera. Three consequences follow. First, macro F1 averages over classes of unequal intrinsic difficulty, so it is not a clean measure of ``how well the model identifies plants''. Second, the crop classes are also the largest and the most uniformly captured, which compounds with the source confound above --- whatever makes crops easy is partly taxonomic and partly photographic, and this dataset cannot separate the two. Third, and most important for how the numbers should be quoted, the task is \emph{not} species-level identification: a model scoring 0.98 here would not distinguish \emph{Acer rubrum} from \emph{Acer saccharum}, because both are labelled Acer. The lab-versus-field comparison is confined within the Leafsnap genera precisely because that holds taxonomic rank fixed, which makes it the one measurement in this thesis untouched by this limitation.
     \item \textbf{Severe class imbalance} ($\sim$250:1), addressed with macro-F1-based selection and imbalance-aware losses but still limiting minority-class reliability.
-    \item \textbf{Single-seed runs.} Unless otherwise stated, results come from one random seed, so small differences between models are within run-to-run noise and are not claimed as significant.
+    \item \textbf{Single-seed runs.} All results come from one random seed. The McNemar tests in Section~\ref{sec:significance} quantify uncertainty from the finite test set, but say nothing about run-to-run variation, so a significant result there does not guarantee the ordering would survive retraining from a different initialization.
+    \item \textbf{No ablation of the v2 changes.} Custom CNN v2 differs from the baseline in architecture (residual blocks, SE attention) \emph{and} in training recipe (AdamW, cosine warmup, label smoothing, class-balanced focal loss, MixUp, CutMix) at the same time. Its 9-point macro-F1 gain therefore cannot be attributed between the two, and the specific claim that augmentation buys cross-condition robustness (Section~\ref{sec:discussion}) rests on a reasonable mechanism rather than on a controlled measurement.
     \item \textbf{Leaf-only scope.} Only leaf images are used; flowers and fruits, mentioned in the original proposal, are outside the scope of the chosen datasets.
 \end{itemize}
 
 \subsection{Future Work}
 \label{sec:futurework}
+\paragraph{Ablation of the v2 changes.} This is the largest interpretive gap in the present results and the item a reader should expect next. Custom CNN v2 bundles an architecture change with a training-recipe change, so its improvement cannot be attributed between them. Five runs on the existing split would settle it, each toggling one factor from the v1 baseline: \textbf{(2)} +residual only; \textbf{(3)} +residual +SE; \textbf{(4)} AdamW with cosine warmup only; \textbf{(5)} class-balanced focal loss with MixUp and CutMix only; \textbf{(6)} all of them, reproducing v2. Comparing runs 2--5 against the baseline attributes the gain, and the difference between run 6 and the sum of the individual effects measures their interaction. Run 5 is the decisive one for this thesis, since it isolates augmentation and so tests directly whether augmentation alone narrows the lab-to-field gap --- a claim Section~\ref{sec:discussion} currently argues on mechanism rather than measurement. The grid costs roughly six GPU sessions.
+
 \begin{itemize}
-    \item Grad-CAM saliency comparison on lab-correct versus field-misclassified images, to test the mechanism proposed in Section~\ref{sec:discussion},
-    \item per-model wall-clock runtime logging, absent from the current runs,
-    \item Multi-seed runs with mean$\pm$standard-deviation reporting to establish significance,
-    \item explicit control of the source confound (e.g.\ matched resolution, or evaluation restricted within a single source),
-    \item deeper cross-condition study: training on lab only and testing on field to quantify the domain gap directly,
-    \item comparison with additional or hybrid backbones,
-    \item resume-capable checkpointing for long Kaggle sessions.
+    \item \textbf{Multi-seed replication.} Three or more seeds per configuration with mean$\pm$standard deviation, so that run-to-run variation can be separated from the test-set uncertainty already quantified in Section~\ref{sec:significance}.
+    \item \textbf{A stricter domain-shift protocol.} Training on Leafsnap lab only and testing on field would measure true out-of-distribution transfer, rather than the within-training-distribution robustness gap measured here, and would make the numbers directly comparable to Mohanty et al.~\cite{mohanty2016}.
+    \item \textbf{Segmentation-based saliency.} Replacing the centre-attention proxy of Section~\ref{sec:gradcamresults} with the fraction of Grad-CAM mass inside a true leaf mask, over far more than six genera.
+    \item \textbf{Explicit control of the source confound}, for instance by matching resolution across sources or by evaluating strictly within a single source.
+    \item \textbf{Uniform taxonomic rank.} Rebuilding the label space at genus level throughout, which would remove the construct-validity threat discussed above at the cost of discarding the crop classes.
+    \item \textbf{Per-model wall-clock runtime logging}, absent from the current runs, and resume-capable checkpointing for long Kaggle sessions.
 \end{itemize}
 
 \subsection{Summary of Contributions}
