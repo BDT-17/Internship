@@ -36,8 +36,13 @@
 % itself rather than being blanked with the numeral typed into each title:
 % \ref{sec:...} prints \thesection, so an empty counter renders as "Section ."
 \renewcommand{\thesection}{\Roman{section}/}
-\titleformat{\section}{\Large\bfseries}{\thesection}{0.5em}{}
-\titlespacing*{\section}{0pt}{2.2em}{1.2em}
+% Each numbered top-level section opens a new page, as the USTH template
+% expects. Starred sections (front matter, REFERENCES, APPENDICES) are excluded
+% -- they already carry their own \clearpage, and a second break would leave a
+% blank page behind.
+\titleformat{\section}[block]{\newpage\Large\bfseries}{\thesection}{0.5em}{}
+\titleformat{name=\section,numberless}[block]{\Large\bfseries}{}{0pt}{}
+\titlespacing*{\section}{0pt}{0pt}{1.2em}
 \renewcommand{\thesubsection}{\arabic{subsection}}
 \renewcommand{\thesubsubsection}{\thesubsection.\arabic{subsubsection}}
 % Give the (empty) section label no width in the ToC so entries align.
@@ -131,9 +136,11 @@ I, Prof.\ Dr.\ Nguyen Duc Dung (Supervisor), certify that the Bachelor Thesis en
 \addcontentsline{toc}{section}{LIST OF ABBREVIATIONS}
 \vspace{0.5cm}
 \begin{tabular}{@{}p{3.2cm}p{10.5cm}@{}}
-    \textbf{Abbreviation} & \textbf{Meaning} \\[0.3em]
+    \textbf{Term} & \textbf{Meaning} \\[0.3em]
+    Ablation & Removing or isolating one component of a model or training recipe to measure its individual contribution \\
     AdamW    & Adam with Decoupled Weight Decay (optimizer) \\
     CB       & Class-Balanced (loss weighting) \\
+    CI       & Confidence Interval \\
     CNN      & Convolutional Neural Network \\
     CutMix   & Cut-and-Mix Regional Augmentation \\
     F1       & F1-score (harmonic mean of precision and recall) \\
@@ -147,6 +154,7 @@ I, Prof.\ Dr.\ Nguyen Duc Dung (Supervisor), certify that the Bachelor Thesis en
     OOD      & Out-of-Distribution \\
     ReLU     & Rectified Linear Unit \\
     ResNet   & Residual Network \\
+    RQ       & Research Question \\
     SE       & Squeeze-and-Excitation (channel attention block) \\
     Top-$k$  & Top-$k$ Accuracy (true label within the $k$ highest scores) \\
 \end{tabular}
@@ -172,6 +180,9 @@ This thesis presents a study of plant image classification using convolutional n
 Beyond the standard scratch-versus-pretrained comparison, the central question of this thesis is one of \emph{generalization}: do these models learn plant leaf morphology, or do they exploit acquisition artifacts such as background and capture conditions? This is probed directly using the Leafsnap \emph{lab} versus \emph{field} split --- both domains cover the same genera, so the accuracy gap between them isolates sensitivity to capture conditions from the label space itself.
 
 Four models are trained and evaluated on an identical deterministic split. Fine-tuned ResNet50 performs best (0.9849 top-1, 0.9747 macro F1), but two results temper that headline. Frozen ImageNet features (0.8737 macro F1) perform no better than a CNN trained entirely from scratch (0.8730), indicating that the advantage of transfer learning here comes from \emph{adapting} the representation rather than from pretraining as such; and a scratch model with a modern training recipe reaches 0.9637 macro F1 without any pretrained weights. Every model loses accuracy moving from lab to field imagery --- by 17.5, 7.1, 6.7 and 4.0 percentage points respectively --- so condition sensitivity is a property of the task rather than of any one architecture, though it is reducible as representations improve. Because classification errors rarely cross between the two source datasets, headline 76-class accuracy partly measures source separation rather than plant recognition, and the source-conditioned results are the figures that should be quoted when the question is how well a model recognizes plants.
+
+\vspace{1em}
+\noindent\textbf{Keywords:} plant image classification; convolutional neural networks; transfer learning; domain shift; lab-to-field generalization; shortcut learning; class imbalance; macro F1; Grad-CAM; PlantVillage; Leafsnap
 
 \clearpage
 \pagenumbering{arabic}
