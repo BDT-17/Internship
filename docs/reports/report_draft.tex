@@ -363,27 +363,32 @@ Figure~\ref{fig:pipeline} shows the end-to-end workflow. The deterministic split
 
 \begin{figure}[H]
     \centering
+    % Absolute coordinates throughout: relative placement against a *coordinate*
+    % (rather than a node) measures from that point and lets wide boxes overlap
+    % their neighbours, which is what previously collided here.
     \begin{tikzpicture}[
-        node distance=6mm,
-        box/.style={draw, rounded corners=2pt, align=center, font=\small,
-                    minimum height=8mm, inner xsep=3pt},
+        box/.style={draw, rounded corners=2pt, align=center, font=\scriptsize,
+                    minimum height=9mm, text width=25mm, inner xsep=2pt},
         src/.style={box, fill=blue!8},
         proc/.style={box, fill=gray!10},
         outbox/.style={box, fill=green!10},
         arr/.style={-{Stealth[length=2mm]}, thick}
     ]
-        \node[src] (pv) {PlantVillage\\\scriptsize 3 crops};
-        \node[src, below=of pv] (ls) {Leafsnap\\\scriptsize 73 genera, lab + field};
-        \node[proc, right=10mm of $(pv)!0.5!(ls)$] (merge) {Merge \& clean\\\scriptsize 76 classes, 51{,}504 img};
-        \node[proc, right=of merge] (split) {Stratified split\\\scriptsize seed 42 $\rightarrow$ 70/15/15};
-        \node[proc, right=of split] (aug) {Preprocess\\\scriptsize $224^2$ + augment};
-        \node[proc, below=10mm of aug] (train) {Train\\\scriptsize 4 models};
-        \node[proc, left=of train] (sel) {Select best\\\scriptsize by val.\ macro F1};
-        \node[outbox, left=of sel] (eval) {Evaluate on\\\scriptsize reconstructed test set};
-        \node[outbox, left=of eval] (analysis) {Analysis\\\scriptsize per-class / group / \textbf{source}};
+        % row 1: sources -> merge -> split -> preprocess
+        \node[src]  (pv)    at (0,  0.85) {PlantVillage\\3 crops};
+        \node[src]  (ls)    at (0, -0.85) {Leafsnap\\73 genera, lab + field};
+        \node[proc] (merge) at (3.4, 0)   {Merge \& clean\\76 classes, 51{,}504 img};
+        \node[proc] (split) at (6.8, 0)   {Stratified split\\seed 42 $\rightarrow$ 70/15/15};
+        \node[proc] (aug)   at (10.2, 0)  {Preprocess\\$224^2$ + augment};
 
-        \draw[arr] (pv) -- (merge);
-        \draw[arr] (ls) -- (merge);
+        % row 2 reads right-to-left, mirroring the fold
+        \node[proc]   (train)    at (10.2, -2.6) {Train\\4 models};
+        \node[proc]   (sel)      at (6.8, -2.6)  {Select best\\by val.\ macro F1};
+        \node[outbox] (eval)     at (3.4, -2.6)  {Evaluate on\\reconstructed test set};
+        \node[outbox] (analysis) at (0,   -2.6)  {Analysis\\per-class / group / \textbf{source}};
+
+        \draw[arr] (pv.east) -- ++(0.35,0) |- (merge.west);
+        \draw[arr] (ls.east) -- ++(0.35,0) |- (merge.west);
         \draw[arr] (merge) -- (split);
         \draw[arr] (split) -- (aug);
         \draw[arr] (aug) -- (train);
@@ -490,33 +495,33 @@ The custom CNN is used as the from-scratch baseline. It is intentionally simpler
 
 \begin{figure}[H]
     \centering
+    % Absolute coordinates throughout, so no box can drift into a neighbour.
     \begin{tikzpicture}[
-        node distance=4.5mm,
         blk/.style={draw, rounded corners=2pt, align=center, font=\scriptsize,
-                    minimum height=9mm, minimum width=21mm, fill=blue!7},
+                    minimum height=9.5mm, text width=20mm, inner xsep=1pt, fill=blue!7},
         pool/.style={blk, fill=gray!10},
         head/.style={blk, fill=green!10},
         io/.style={blk, fill=orange!13},
         arr/.style={-{Stealth[length=1.8mm]}, thick}
     ]
-        \node[io] (in) {Input\\$3\times224^2$};
-        \node[blk, right=of in] (c1) {Conv $3\times3$, 32\\BN + ReLU};
-        \node[pool, right=of c1] (p1) {MaxPool 2\\$32\times112^2$};
-        \node[blk, right=of p1] (c2) {Conv $3\times3$, 64\\BN + ReLU};
-        \node[pool, right=of c2] (p2) {MaxPool 2\\$64\times56^2$};
+        \node[io]   (in) at (0,    0) {Input\\$3\times224^2$};
+        \node[blk]  (c1) at (2.55, 0) {Conv $3\times3$, 32\\BN + ReLU};
+        \node[pool] (p1) at (5.1,  0) {MaxPool 2\\$32\times112^2$};
+        \node[blk]  (c2) at (7.65, 0) {Conv $3\times3$, 64\\BN + ReLU};
+        \node[pool] (p2) at (10.2, 0) {MaxPool 2\\$64\times56^2$};
 
-        \node[blk, below=8mm of in] (c3) {Conv $3\times3$, 128\\BN + ReLU};
-        \node[pool, right=of c3] (p3) {MaxPool 2\\$128\times28^2$};
-        \node[blk, right=of p3] (c4) {Conv $3\times3$, 256\\BN + ReLU};
-        \node[pool, right=of c4] (gap) {GlobalAvgPool\\$256\times1\times1$};
-        \node[head, right=of gap] (fc) {Dropout 0.3\\Linear $256\to76$};
+        \node[blk]  (c3)  at (0,    -2.5) {Conv $3\times3$, 128\\BN + ReLU};
+        \node[pool] (p3)  at (2.55, -2.5) {MaxPool 2\\$128\times28^2$};
+        \node[blk]  (c4)  at (5.1,  -2.5) {Conv $3\times3$, 256\\BN + ReLU};
+        \node[pool] (gap) at (7.65, -2.5) {GlobalAvgPool\\$256\times1\times1$};
+        \node[head] (fc)  at (10.2, -2.5) {Dropout 0.3\\Linear $256\to76$};
 
         \draw[arr] (in) -- (c1);
         \draw[arr] (c1) -- (p1);
         \draw[arr] (p1) -- (c2);
         \draw[arr] (c2) -- (p2);
-        % wrap to the second row, entering from the left so both rows read L-to-R
-        \draw[arr] (p2.east) -- ++(0.3,0) |- ($(c3.west)-(0.45,0)$) -- (c3.west);
+        % Route the fold through the gutter between rows so it crosses no block.
+        \draw[arr] (p2.south) -- ++(0,-0.62) -- ($(c3.north)+(0,0.63)$) -- (c3.north);
         \draw[arr] (c3) -- (p3);
         \draw[arr] (p3) -- (c4);
         \draw[arr] (c4) -- (gap);
@@ -564,30 +569,29 @@ To test whether a stronger from-scratch design narrows the gap to pretrained mod
 
 \begin{figure}[H]
     \centering
+    % Absolute coordinates; the fold is routed through the gutter between rows.
     \begin{tikzpicture}[
-        node distance=5mm,
         blk/.style={draw, rounded corners=2pt, align=center, font=\scriptsize,
-                    minimum height=9.5mm, minimum width=23mm, fill=blue!7},
+                    minimum height=11mm, text width=21mm, inner xsep=1pt, fill=blue!7},
         pool/.style={blk, fill=gray!10},
         head/.style={blk, fill=green!10},
         io/.style={blk, fill=orange!13},
         arr/.style={-{Stealth[length=1.8mm]}, thick}
     ]
-        \node[io] (in) {Input\\$3\times224^2$};
-        \node[pool, right=of in] (stem) {Stem: Conv 64\\BN+ReLU, Pool\\$64\times112^2$};
-        \node[blk, right=of stem] (s1) {Stage 1\\$2\times$ResidualSE\\$64\times112^2$};
-        \node[blk, right=of s1] (s2) {Stage 2\\$2\times$ResidualSE\\$128\times56^2$};
+        \node[io]   (in)   at (0,    0) {Input\\$3\times224^2$};
+        \node[pool] (stem) at (2.65, 0) {Stem: Conv 64\\BN+ReLU, Pool\\$64\times112^2$};
+        \node[blk]  (s1)   at (5.3,  0) {Stage 1\\$2\times$ResidualSE\\$64\times112^2$};
+        \node[blk]  (s2)   at (7.95, 0) {Stage 2\\$2\times$ResidualSE\\$128\times56^2$};
 
-        \node[blk, below=8mm of stem] (s3) {Stage 3\\$2\times$ResidualSE\\$256\times28^2$};
-        \node[blk, right=of s3] (s4) {Stage 4\\$2\times$ResidualSE\\$512\times14^2$};
-        \node[pool, right=of s4] (gap) {GlobalAvgPool\\$512\times1\times1$};
-        \node[head, right=of gap] (fc) {Dropout 0.3\\Linear $512\to76$};
+        \node[blk]  (s3)  at (0,    -2.8) {Stage 3\\$2\times$ResidualSE\\$256\times28^2$};
+        \node[blk]  (s4)  at (2.65, -2.8) {Stage 4\\$2\times$ResidualSE\\$512\times14^2$};
+        \node[pool] (gap) at (5.3,  -2.8) {GlobalAvgPool\\$512\times1\times1$};
+        \node[head] (fc)  at (7.95, -2.8) {Dropout 0.3\\Linear $512\to76$};
 
         \draw[arr] (in) -- (stem);
         \draw[arr] (stem) -- (s1);
         \draw[arr] (s1) -- (s2);
-        % wrap to the second row, entering from the left so both rows read L-to-R
-        \draw[arr] (s2.east) -- ++(0.3,0) |- ($(s3.west)-(0.45,0)$) -- (s3.west);
+        \draw[arr] (s2.south) -- ++(0,-0.67) -- ($(s3.north)+(0,0.67)$) -- (s3.north);
         \draw[arr] (s3) -- (s4);
         \draw[arr] (s4) -- (gap);
         \draw[arr] (gap) -- (fc);
@@ -715,11 +719,13 @@ where $\delta$ is ReLU and $\sigma$ the sigmoid. The \emph{scale} step rescales 
         \node[recipe, below=of r3] (r4) {CE $\to$ class-balanced focal};
         \node[recipe, below=of r4] (r5) {MixUp $0.2$ + CutMix $1.0$};
 
-        % Result sits clear below the longest column so nothing overlaps.
-        \node[res] (out) at (7.35,-6.15)
+        % Result sits clear below both columns; feeders drop straight down from
+        % each column's last item, then turn once into the top of the box.
+        \node[res] (out) at (7.35,-6.8)
             {macro F1 $0.8730 \to 0.9637$\\lab$\to$field gap $-17.5 \to -6.7$ pts};
-        \draw[arr] (a5.south) |- ++(0,-4mm) -| (out.north west);
-        \draw[arr] (r5.south) |- ++(0,-4mm) -| (out.north east);
+        \coordinate (join) at (7.35,-6.1);
+        \draw[arr] (a5.south) -- (a5.south |- join) -- ($(out.north)-(1.6,0)$);
+        \draw[arr] (r5.south) -- (r5.south |- join) -- ($(out.north)+(1.6,0)$);
     \end{tikzpicture}
     \caption{The v1-to-v2 comparison. Architecture and training recipe were changed \emph{together}, so the measured improvement cannot be attributed between them --- an ablation crossing the two is listed in Section~\ref{sec:futurework}.}
     \label{fig:v1v2diff}
