@@ -1,220 +1,159 @@
-# Plant Species Classification
+# Plant Image Classification: From Scratch versus Pretrained CNNs
 
-Internship project benchmarking a from-scratch CNN against pretrained backbones on a
-76-class plant classification task. The dataset merges crop-level labels from
-PlantVillage with tree-genus labels from Leafsnap, which makes it strongly
-long-tailed (largest class is ~250x the smallest), so **macro F1 matters more than
-accuracy** and the pipeline ships loss functions and augmentations aimed at that.
+Bachelor thesis project. Four CNNs are trained on a 76-class plant dataset that merges
+crop labels from PlantVillage with tree-genus labels from Leafsnap, and compared under
+one deterministic split.
 
-Training is designed to run on Kaggle GPUs; the same code runs locally on CPU for
-smoke tests.
+The headline comparison — scratch versus pretrained — is the expected one. The question
+the project actually asks is **what the models learn**: because Leafsnap contains *lab*
+and *field* photographs of the *same genera*, the accuracy difference between those two
+domains measures how much a model depends on capture conditions rather than on leaf
+shape, with the label space held fixed.
+
+## Results
+
+| Model | Top-1 | Macro F1 | Lab → field gap | Grad-CAM attention drift |
+| --- | --- | --- | --- | --- |
+| Custom CNN | 0.9222 | 0.8730 | −17.5 pts | −0.229 |
+| Custom CNN v2 (scratch) | 0.9655 | 0.9637 | −6.7 pts | −0.137 |
+| ResNet50 feature extraction | 0.9167 | 0.8737 | −7.1 pts | −0.115 |
+| **ResNet50 fine-tuning** | **0.9849** | **0.9747** | **−4.0 pts** | **+0.076** |
+
+Single seed, 7,763 held-out test images, 76 classes.
+
+Three findings:
+
+1. **Frozen ImageNet features are worth about as much as training from scratch**
+   (0.8737 vs 0.8730 macro F1). The advantage of transfer learning comes from
+   *adapting* the representation, not from possessing it.
+2. **A modern training recipe substitutes for pretraining.** Custom CNN v2 uses no
+   pretrained weights and lands within 1.1 macro-F1 points of fine-tuning.
+3. **Every model degrades from lab to field imagery**, so condition sensitivity is a
+   property of the task, not of one architecture — but the gap shrinks as
+   representations improve, and Grad-CAM shows the weakest model's attention leaving
+   the leaf entirely on field images it gets wrong.
+
+Full write-up: [`docs/reports/report_draft.tex`](docs/reports/report_draft.tex).
+Architecture comparison: [`docs/reports/custom_cnn_architectures.md`](docs/reports/custom_cnn_architectures.md).
 
 ## Dataset
 
-`dataset_plant_classification/` holds 76 classes and 51,504 images, produced by
-`scripts/02_restructure_dataset.py` from the two raw sources under `dataset/`:
+76 classes, 51,504 images, built by `scripts/02_restructure_dataset.py` from two raw
+sources:
 
-| Source | Grouping | Classes | Examples |
+| Source | Grouping | Classes | Note |
 | --- | --- | --- | --- |
-| PlantVillage | by crop name (disease labels collapsed) | 3 | `Pepper` (2,475), `Potato` (2,152), `Tomato` (16,011) |
-| Leafsnap | by genus (`field` + `lab` images) | 73 | `Acer`, `Pinus`, `Quercus`, `Betula`, `Magnolia` |
+| PlantVillage | by crop, disease labels collapsed | 3 | uniform 256×256, plain background |
+| Leafsnap | by genus, `lab` + `field` kept distinguishable | 73 | lab is controlled; field is phone photos outdoors |
 
-Grouping examples: `Pepper__bell___Bacterial_spot` and `Pepper__bell___healthy` both
-become `Pepper`; `acer_rubrum` and `acer_saccharum` both become `Acer`. This keeps the
-label space broad without exploding into hundreds of species folders. Metadata `.txt`
-files are stripped, so the output is images only (`.jpg`, plus one `.jpeg` and one
-`.png`).
+`Pepper__bell___Bacterial_spot` and `Pepper__bell___healthy` both become `Pepper`;
+`acer_rubrum` and `acer_saccharum` both become `Acer`.
 
-On Kaggle the dataset lives at
-`/kaggle/input/datasets/thngbuduc/plant-classification/dataset_plant_classification`;
-`plant_classifier/paths.py` locates it automatically, so you rarely pass `--dataset-dir`.
+Two properties shape everything downstream:
 
-## Repository layout
+- **Imbalance is severe** — roughly 250:1 (Tomato 16,011 images, Toona 64), and 45 of
+  76 classes hold fewer than 300 images. Model selection and early stopping therefore
+  use **validation macro F1**, never accuracy.
+- **Source is partly confounded with the label**, since PlantVillage and Leafsnap differ
+  in resolution and background. This is why the lab-versus-field comparison *within*
+  Leafsnap, where genera are identical, is the measurement that matters.
+
+Leafsnap filenames keep their `ls_lab_` / `ls_field_` prefix after restructuring, which
+is what makes the source-conditioned analysis possible after training.
+
+## Layout
 
 ```text
-Internship/
-|-- plant_classifier/          # the library: all real logic lives here
-|   |-- config.py              # TrainConfig dataclass (every hyperparameter)
-|   |-- data.py                # class discovery, deterministic split, transforms, loaders
-|   |-- models.py              # the 6 model variants
-|   |-- losses.py              # focal / class-balanced / cb-focal + label smoothing
-|   |-- mixup.py               # mixup + cutmix
-|   |-- training.py            # train/eval loop, early stopping, artifact writing
-|   |-- analysis.py            # post-training per-class / crop-vs-genus / confusion analysis
-|   |-- inference.py           # single-image prediction
-|   |-- plots.py               # history, confusion matrix, model comparison figures
-|   `-- paths.py               # Kaggle vs local path resolution
-|-- scripts/                   # thin entry points around the library
-|   |-- train_kaggle.py        # training CLI
-|   |-- analyze_kaggle.py      # analysis CLI (no retraining)
-|   |-- infer_kaggle.py        # inference CLI
-|   |-- 01_extract_clean.py    # raw archive extraction
-|   |-- 02_restructure_dataset.py  # builds dataset_plant_classification/
-|   `-- ...                    # notebook maintenance helpers
-|-- notebooks/
-|   |-- Kaggle_Run_From_Git.ipynb   # main Kaggle entry: clones this repo, runs training
-|   |-- Smoke_Test_Kaggle.ipynb     # 1-epoch sanity check
-|   |-- Kaggle_Showcase_Inference.ipynb
-|   |-- Kaggle_Full_Training_Plant_Classification.ipynb
-|   `-- Phase_2_Plant_Classification.ipynb   # original self-contained notebook
-|-- docs/
-|-- dataset/                   # raw PlantVillage + Leafsnap
-|-- dataset_plant_classification/   # the training dataset
-|-- data/archives/
-`-- archive/                   # notebook backups and drafts
+plant_classifier/        the library — all real logic lives here
+  config.py              TrainConfig: every hyperparameter in one dataclass
+  data.py                class discovery, deterministic split, transforms, loaders
+  models.py              the model variants
+  losses.py              focal / class-balanced / cb-focal, label smoothing
+  mixup.py               mixup + cutmix
+  training.py            train/eval loop, early stopping, artifact writing
+  analysis.py            per-class, crop-vs-genus, lab-vs-field, confusion analysis
+  gradcam.py             Grad-CAM saliency on matched lab/field pairs
+  inference.py           single-image prediction
+  plots.py               history, confusion matrix, comparison figures
+  paths.py               locates the dataset and model root on Kaggle or locally
+
+scripts/                 thin CLIs — argument parsing only, no logic
+  01_extract_clean.py    unpack and clean the raw archives
+  02_restructure_dataset.py  build dataset_plant_classification/
+  train_kaggle.py        training
+  analyze_kaggle.py      post-training analysis, no retraining
+  gradcam_kaggle.py      Grad-CAM panels, no retraining
+  infer_kaggle.py        inference
+
+notebooks/
+  Kaggle_Run_From_Git.ipynb   the only notebook: pulls this repo, then trains or analyzes
+
+docs/reports/            thesis source, figures, architecture note
 ```
 
-The notebooks call into `plant_classifier/`, they do not duplicate it. `Kaggle_Run_From_Git.ipynb`
-clones the repo fresh on every Kaggle run, so pushing to `main` is how you ship a change
-to the GPU — see `docs/KAGGLE_WORKFLOW.md`.
+Anything not listed here — raw data, trained weights, downloaded result bundles, the
+compiled PDF — is generated and deliberately untracked. See `.gitignore`.
 
-## Models
+## Running it
 
-Selected with `--models`. All pretrained backbones fall back to random init if weights
-cannot be downloaded, so an offline run still completes.
+### On Kaggle (normal path)
 
-| Name | What it is | Trainable parts |
-| --- | --- | --- |
-| `custom_cnn` | 4-conv baseline, from scratch | everything |
-| `custom_cnn_v2` | residual + Squeeze-Excitation, ~SE-ResNet-18 scale | everything |
-| `resnet50_feature_extraction` | frozen ResNet50 | head only |
-| `resnet50_fine_tuning` | ResNet50 | `layer4` + head |
-| `efficientnet_v2_s` | EfficientNetV2-S | last 2 feature stages + head |
-| `convnext_tiny` | ConvNeXt-Tiny | last 2 feature stages + head |
+1. Import `notebooks/Kaggle_Run_From_Git.ipynb` from GitHub. Kaggle does not pull the
+   notebook itself on later runs, so **re-import it whenever the notebook changes** —
+   the Python code *is* pulled fresh by the second cell.
+2. Attach the image dataset and the four model datasets.
+3. Leave `MODE = "analyze"` and run every cell. The training cell skips itself in this
+   mode, so a top-to-bottom run is safe.
+4. Download `plant_research_bundle.zip` from the output panel.
 
-`DEFAULT_MODEL_NAMES` in `config.py` is still the original three (`custom_cnn`,
-`resnet50_feature_extraction`, `resnet50_fine_tuning`), so the newer models only run when
-you name them explicitly with `--models`.
+Set `MODE = "train"` to train instead. `SMOKE = True` runs a single epoch — a pipeline
+check whose numbers must never reach the report.
 
-## Setup
+### Locally
 
 ```bash
-cd d:/DS/Internship
-venv\Scripts\activate
 pip install -r requirements.txt
-python -c "import torch; print(torch.__version__, torch.cuda.is_available())"
-```
 
-## Training
+# rebuild the dataset from raw archives
+python scripts/01_extract_clean.py
+python scripts/02_restructure_dataset.py
 
-```bash
-python scripts/train_kaggle.py \
-    --dataset-dir dataset_plant_classification \
-    --output-dir plant_training_outputs \
-    --models custom_cnn_v2 \
-    --epochs 50
-```
-
-Splits are 70/15/15 stratified per class, seeded (`--seed 42`), and deterministic — which
-is what lets `analyze_kaggle.py` reconstruct the exact test set later without retraining.
-`best_model.pth` and early stopping (patience 7) both track **validation macro-F1** by
-default — the honest metric under the ~250x class imbalance, where accuracy just follows the
-largest class. Pass `--model-selection-metric val_accuracy` to restore the old behaviour.
-Mixed precision is on by default on CUDA (`--no-amp` to disable).
-
-### Tier-1 options
-
-These all default to the original baseline behaviour, so they are opt-in and each one can
-be ablated independently:
-
-| Flag | Values | Default |
-| --- | --- | --- |
-| `--optimizer` | `adam`, `adamw` | `adam` |
-| `--lr-scheduler` | `none`, `cosine`, `cosine_warmup` | `none` |
-| `--warmup-epochs` | int | `3` |
-| `--label-smoothing` | float | `0.0` |
-| `--loss` | `ce`, `focal`, `class_balanced`, `cb_focal` | `ce` |
-| `--focal-gamma` | float | `2.0` |
-| `--cb-beta` | float | `0.9999` |
-| `--mixup-alpha` / `--cutmix-alpha` | float | `0.0` (off) |
-| `--mixup-prob` | float | `0.5` |
-
-`class_balanced` and `cb_focal` weight classes by effective-number-of-samples (Cui et al.,
-CVPR 2019) using the *training-split* class counts; `focal` is Lin et al. (ICCV 2017).
-Both target the long tail.
-
-Two things to know when reading the logs of a mixup run: training accuracy looks alarmingly
-low (it is measured against the original labels on mixed images — this is expected), and
-`cb_focal` validation loss is not comparable to a plain CE run. Compare validation accuracy
-and macro F1 instead. Mixup also converges slowly, so 50 epochs may not be enough.
-
-### Outputs
-
-Per model, under `<output-dir>/<model_name>/`: `best_model.pth`, `epoch_NN.pth` (unless
-`--no-save-every-epoch`), `history.csv`, `history.png`, `confusion_matrix.png`,
-`test_predictions.csv`, `summary.json`. At the run root: `class_names.json`,
-`class_counts.csv`, `all_models_summary.csv`/`.json`, `model_comparison.png`.
-
-Note that `--output-dir` is not namespaced per run, so two runs with the same output
-directory overwrite each other. Give each ablation its own `--output-dir`.
-
-## Post-training analysis
-
-`analyze_kaggle.py` does not retrain. It rebuilds the deterministic test split, reruns each
-saved `best_model.pth`, and writes the metrics the report actually needs given the class
-imbalance:
-
-```bash
+# analyze already-trained weights (CPU is fine)
 python scripts/analyze_kaggle.py \
     --dataset-dir dataset_plant_classification \
     --model-root plant_training_outputs \
     --output-dir plant_training_outputs \
-    --models custom_cnn_v2 resnet50_fine_tuning
+    --models custom_cnn custom_cnn_v2 resnet50_feature_extraction resnet50_fine_tuning
+
+# Grad-CAM panels — only a few dozen images, so this is quick without a GPU
+python scripts/gradcam_kaggle.py \
+    --dataset-dir dataset_plant_classification \
+    --model-root plant_training_outputs \
+    --output-dir plant_training_outputs \
+    --models custom_cnn custom_cnn_v2 resnet50_feature_extraction resnet50_fine_tuning \
+    --max-pairs 6
 ```
 
-Produces `per_class_metrics.csv` (precision/recall/F1/support per class),
-`group_analysis.csv` (crop vs tree-genus performance), `most_confused_pairs.csv`,
-`per_class_f1_vs_size.png`, and `analysis_summary.json`. The run-level
-`analysis_comparison.csv` also carries **top-3 / top-5 accuracy** per model
-alongside top-1 accuracy and macro/weighted F1.
+> `DEFAULT_MODEL_NAMES` in `config.py` lists only three models — it omits
+> `custom_cnn_v2`. Pass `--models` explicitly, as above, or that model is silently
+> skipped.
 
-On Kaggle the input tree is read-only, so pass an `--output-dir` under `/kaggle/working`;
-the script mirrors the weights across before writing.
+Training needs a GPU. Analysis and Grad-CAM do not.
 
-## Inference
+## Reproducibility
+
+The train/validation/test split is stratified 70/15/15 and driven by a fixed seed (42),
+so the exact held-out test set can be rebuilt from the seed alone on any machine. That
+is what lets `analyze_kaggle.py` and `gradcam_kaggle.py` re-evaluate saved checkpoints
+long after training, on different hardware, without retraining anything — every number
+in the report was produced that way.
+
+## Building the report
 
 ```bash
-python scripts/infer_kaggle.py \
-    --model-name resnet50_fine_tuning \
-    --model-root plant_training_outputs \
-    --image-path path/to/leaf.jpg \
-    --top-k 5
+cd docs/reports
+pdflatex report_draft.tex   # run three times so the ToC and \ref links settle
 ```
 
-## Results so far
-
-50-epoch benchmark, validation accuracy:
-
-| Model | Val accuracy |
-| --- | --- |
-| `resnet50_fine_tuning` | 0.984 |
-| `custom_cnn` | 0.920 |
-| `resnet50_feature_extraction` | 0.916 |
-
-Fine-tuning clearly wins; feature extraction buys nothing over a custom CNN trained from
-scratch on this dataset. The `custom_cnn_v2` and Tier-1 runs are the current work in
-progress.
-
-## Research questions
-
-1. Compare a from-scratch CNN against pretrained backbones on 76-class plant classification.
-2. Analyze accuracy, macro F1, class imbalance, and training efficiency.
-3. Take the strongest pretrained model and compare it deeply against the custom baseline.
-
-## Troubleshooting
-
-**CUDA out of memory** — lower `--batch-size` (e.g. `16`), or `--image-size 160`.
-
-**Dataset not found** — `find_dataset_dir` searches `/kaggle/input` recursively and then the
-working directory for a folder named `dataset_plant_classification`. Pass `--dataset-dir`
-explicitly if your layout differs.
-
-## References
-
-- [KAGGLE_WORKFLOW.md](docs/KAGGLE_WORKFLOW.md) — how the run-from-git notebook works
-- [NEXT_RESEARCH_MODELS.md](docs/NEXT_RESEARCH_MODELS.md)
-- [PROJECT_XRAY.md](docs/PROJECT_XRAY.md)
-- [CHANGELOG.md](docs/CHANGELOG.md)
-- [IMPLEMENTATION_SUMMARY.md](docs/IMPLEMENTATION_SUMMARY.md)
-- [Phase_1_Literature_Review_Report.md](docs/reports/Phase_1_Literature_Review_Report.md)
-- [dataset_overview.md](docs/guides/dataset_overview.md)
+Needs a LaTeX distribution with `tikz`, `booktabs`, and `titlesec`. The PDF is not
+tracked.
