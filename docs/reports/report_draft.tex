@@ -43,7 +43,11 @@
 \titleformat{\section}[block]{\newpage\Large\bfseries}{\thesection}{0.5em}{}
 \titleformat{name=\section,numberless}[block]{\Large\bfseries}{}{0pt}{}
 \titlespacing*{\section}{0pt}{0pt}{1.2em}
-\renewcommand{\thesubsection}{\arabic{subsection}}
+% \thesection prints "I/", "II/", ... for the heading, but a bare
+% \arabic{subsection} in \ref output (e.g. "Section~9") is indistinguishable
+% from a top-level section number and reads as a broken cross-reference.
+% Prefix subsections with the arabic section number instead.
+\renewcommand{\thesubsection}{\arabic{section}.\arabic{subsection}}
 \renewcommand{\thesubsubsection}{\thesubsection.\arabic{subsubsection}}
 % Give the (empty) section label no width in the ToC so entries align.
 \makeatletter
@@ -288,7 +292,7 @@ The objectives of this project are:
 
 \subsection{Hypotheses}
 \label{sec:hypotheses}
-Each research question of Section~\ref{sec:intro} carries a hypothesis stated before the experiments were run, so that the results can confirm or refute rather than merely describe. Every hypothesis is falsifiable against the measurements reported in Section~\ref{sec:results}.
+Each research question of Section~\ref{sec:rqs} carries a hypothesis stated before the experiments were run, so that the results can confirm or refute rather than merely describe. Every hypothesis is falsifiable against the measurements reported in Section~\ref{sec:results}.
 
 \begin{description}[leftmargin=1.6cm,style=nextline]
     \item[\textbf{H1}] \emph{Pretrained models outperform scratch-trained models under macro F1.} Refuted if a scratch model matches or exceeds a pretrained one. (RQ1)
@@ -839,7 +843,7 @@ It reaches $0.80$ validation macro F1 by epoch 16, roughly twice as fast as the 
 
 \section{RESULTS AND DISCUSSION}
 \label{sec:results}
-This section reports the four models' test-set performance, decomposes it by acquisition source to answer the generalization question, and interprets both against the research questions of Section~\ref{sec:objectives}.
+This section reports the four models' test-set performance, decomposes it by acquisition source to answer the generalization question, and interprets both against the research questions of Section~\ref{sec:rqs}.
 % Numbers below come from the Kaggle analysis run (analyze_kaggle.py ->
 % analysis_comparison.csv / source_analysis.csv), single seed, 76 classes.
 % Macro precision/recall are the unweighted means over per_class_metrics.csv;
@@ -1048,7 +1052,7 @@ A caveat for interpreting these numbers: per-epoch cost is not equal across mode
 
 \subsection{Discussion}
 \label{sec:discussion}
-This subsection answers the four research questions of Section~\ref{sec:objectives} in turn, then considers what the results imply for deploying such a classifier.
+This subsection answers the four research questions of Section~\ref{sec:rqs} in turn, then considers what the results imply for deploying such a classifier.
 
 \subsubsection{Scratch versus pretrained: the expected result, with a caveat}
 Fine-tuning wins, as the literature predicts: ResNet50 FT leads on every metric in Table~\ref{tab:main} (0.9849 top-1, 0.9747 macro F1) and converges in fewer epochs. The caveat is that \emph{pretraining alone} is not what produces the win. ResNet50 FE---the same ImageNet backbone, frozen---scores 0.8737 macro F1, statistically indistinguishable from the Custom CNN trained entirely from scratch (0.8730). The benefit comes from \emph{adapting} the representation to leaf imagery, not from possessing it. Frozen ImageNet features, on this task, are worth about as much as features learned from scratch on 51{,}504 plant images.
