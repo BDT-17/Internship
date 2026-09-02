@@ -610,7 +610,7 @@ To test whether a stronger from-scratch design narrows the gap to pretrained mod
     \mathbf{y} = \mathcal{F}(\mathbf{x}, \{W_i\}) + \mathbf{x}.
     \label{eq:residual}
 \end{equation}
-The identity shortcut adds no parameters and no computational cost, but it gives gradients an clear path to earlier layers, which is what allows the deeper stack to be optimized at all.
+The identity shortcut adds no parameters and no computational cost, but it gives gradients a clear path to earlier layers, which is what allows the deeper stack to be optimized at all.
 
 \begin{figure}[H]
     \centering
@@ -839,8 +839,7 @@ It reaches $0.80$ validation macro F1 by epoch 16, roughly twice as fast as the 
 
 \section{RESULTS AND DISCUSSION}
 \label{sec:results}
-This section reports the four models' test-set performance, decomposes it by acquisition source to answer the generalization question, and interprets both against the research questions of Section~
-ef{sec:objectives}.
+This section reports the four models' test-set performance, decomposes it by acquisition source to answer the generalization question, and interprets both against the research questions of Section~\ref{sec:objectives}.
 % Numbers below come from the Kaggle analysis run (analyze_kaggle.py ->
 % analysis_comparison.csv / source_analysis.csv), single seed, 76 classes.
 % Macro precision/recall are the unweighted means over per_class_metrics.csv;
@@ -1049,8 +1048,7 @@ A caveat for interpreting these numbers: per-epoch cost is not equal across mode
 
 \subsection{Discussion}
 \label{sec:discussion}
-This subsection answers the four research questions of Section~
-ef{sec:objectives} in turn, then considers what the results imply for deploying such a classifier.
+This subsection answers the four research questions of Section~\ref{sec:objectives} in turn, then considers what the results imply for deploying such a classifier.
 
 \subsubsection{Scratch versus pretrained: the expected result, with a caveat}
 Fine-tuning wins, as the literature predicts: ResNet50 FT leads on every metric in Table~\ref{tab:main} (0.9849 top-1, 0.9747 macro F1) and converges in fewer epochs. The caveat is that \emph{pretraining alone} is not what produces the win. ResNet50 FE---the same ImageNet backbone, frozen---scores 0.8737 macro F1, statistically indistinguishable from the Custom CNN trained entirely from scratch (0.8730). The benefit comes from \emph{adapting} the representation to leaf imagery, not from possessing it. Frozen ImageNet features, on this task, are worth about as much as features learned from scratch on 51{,}504 plant images.
@@ -1175,7 +1173,7 @@ entry-point scripts and Kaggle notebooks:
 
 \subsection*{Appendix B: Reproducibility}
 All results in this thesis come from a single deterministic split (seed 42) over
-\texttt{dataset\_plant\_classification} (76 classes, 51{,}504 images). Because the split is
+\texttt{dataset\_\allowbreak plant\_\allowbreak classification} (76 classes, 51{,}504 images). Because the split is
 reproducible from the seed alone, any saved checkpoint can be re-evaluated on the exact
 held-out test set without retraining; this is what makes the source-conditioned analysis in
 Section~\ref{sec:results} possible after the fact. Training was carried out on Kaggle GPU
