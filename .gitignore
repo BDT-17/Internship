@@ -9,6 +9,8 @@ plant_training_outputs/
 smoke_test_outputs/
 notebooks/trained/
 analyze/
+analysis/
+ablation/
 ax/
 Grad-cam/
 
